@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Глушитель: учёт арматуры</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Глушитель">
+<meta name="robots" content="noindex,nofollow">
+<style>
+/* Layout: служебная ведомость — реквизиты, панель смены, сводная таблица по диаметрам, ведомость изделий с сеткой линий */
+:root{
+  --bg:#eceef1; --panel:#ffffff; --head:#e1e5ea; --line:#b7bec7; --ink:#1b2430; --muted:#566170;
+  --accent:#1f3e6b; --accent-ink:#ffffff; --inp:#f4f6f8; --soft-ok:#e3f1e5;
+  --ok:#2b6a36; --warn:#8a5a00; --warn-bg:#fff6e0; --swap:#244a8a; --swap-bg:#e9eff9;
+  --f-body:"PT Sans",Arial,"Helvetica Neue",sans-serif;
+  --f-num:"PT Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14181d; --panel:#1b2128; --head:#232b34; --line:#3b4550; --ink:#dde3ea; --muted:#9aa5b2;
+  --accent:#8fb0e0; --accent-ink:#0f1722; --inp:#151a20; --soft-ok:#1d3322;
+  --ok:#86c792; --warn:#e3b45c; --warn-bg:#2e2716; --swap:#9fbaf0; --swap-bg:#1d2638; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181d; --panel:#1b2128; --head:#232b34; --line:#3b4550; --ink:#dde3ea; --muted:#9aa5b2;
+  --accent:#8fb0e0; --accent-ink:#0f1722; --inp:#151a20; --soft-ok:#1d3322;
+  --ok:#86c792; --warn:#e3b45c; --warn-bg:#2e2716; --swap:#9fbaf0; --swap-bg:#1d2638; color-scheme:dark}
+*{border-radius:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.45}
+.wrap{max-width:1200px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+.doc{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:8px 24px}
+.doc .kick{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+h1{font-size:22px;margin:2px 0 0;text-wrap:balance}
+h2{font-size:15px;margin:0;text-transform:uppercase;letter-spacing:.05em}
+.req{font-size:13px;color:var(--muted);text-align:right;line-height:1.6}
+.sub{color:var(--muted);margin:0;max-width:80ch;grid-column:1/-1}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.bar{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:end;background:var(--panel);border:1px solid var(--line);padding:12px 16px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld>span{font-size:12px;color:var(--muted)}
+input[type=date],input[type=number]{font:inherit;font-family:var(--f-num);background:var(--inp);color:var(--ink);border:1px solid var(--line);padding:6px 8px}
+input[type=number]{width:72px;text-align:right}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{font:inherit;border:0;background:var(--inp);color:var(--ink);padding:6px 13px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn{font:inherit;font-weight:700;border:1px solid var(--accent);padding:7px 16px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn[disabled]{opacity:.45;cursor:default}
+.fld>span.status,.status{font-size:13px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));border:1px solid var(--line);background:var(--line);gap:1px}
+.tile{background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.tile b{font-family:var(--f-num);font-size:21px;font-weight:400}
+.tile small{color:var(--muted);font-size:12.5px}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;border:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--head);font-weight:700;font-size:12.5px;white-space:nowrap}
+td.r,th.r{text-align:right}
+tr.grp td{background:var(--head);font-weight:700}
+tr.grp td span{font-weight:400;color:var(--muted);margin-left:8px}
+tr.tot td{font-weight:700}
+.name{font-weight:700}
+.comp{color:var(--muted);font-size:12.5px;font-family:var(--f-num)}
+.tag{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:0 5px;border:1px solid currentColor;margin:4px 6px 0 0}
+.tag.est{color:var(--warn)} .tag.swap{color:var(--swap)} .tag.ok{color:var(--ok)}
+.expl{margin-top:5px;padding:6px 8px;font-size:12.5px;line-height:1.45;max-width:62ch;border-left:3px solid currentColor}
+.expl.est{background:var(--warn-bg);border-color:var(--warn)} .expl.swap{background:var(--swap-bg);border-color:var(--swap)}
+.expl b{font-weight:700}
+.expl.plain{border-color:var(--line);color:var(--muted)}
+#items td.c-name{min-width:300px}
+.dw{display:flex;flex-direction:column;gap:3px;font-size:12.5px;white-space:nowrap}
+.dw a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.dw .none{color:var(--muted)}
+.inp{background:var(--inp)}
+.pg{height:5px;background:var(--head);border:1px solid var(--line);min-width:60px;margin-top:5px}
+.pg i{display:block;height:100%;background:var(--ok)}
+.notes{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.files{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 18px;font-size:13.5px}
+.files a{color:var(--accent)}
+.log{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 18px}
+.dirty{color:var(--warn);font-weight:700}
+
+.mini{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--inp);color:var(--ink);padding:3px 8px;cursor:pointer;text-decoration:none;display:inline-block}
+.mini[disabled]{opacity:.5;cursor:default}
+.mini[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.mini.big{font-size:14px;padding:6px 12px}
+.allbar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:8px 10px;border:1px solid var(--line);background:var(--head)}
+#items tr.it.mm td.c-mark,#items tr.it.ms td.c-mark{background:var(--soft-ok)}
+#items tr.it.mm td.c-name,#items tr.it.ms td.c-name{box-shadow:inset 4px 0 0 var(--ok)}
+.mk input[type=number]::placeholder{color:var(--muted);opacity:.6}
+tr.grp td{display:table-cell}
+.gwhere{font-weight:400;color:var(--muted);margin-left:8px}
+.gbtn{float:right;display:inline-flex;gap:6px;flex-wrap:wrap}
+.dwb,.fileb{font:inherit;font-size:12.5px;text-align:left;background:none;border:0;padding:1px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+.files .fileb{font-size:13.5px}
+details.expl summary{cursor:pointer}
+details.expl[open] summary{margin-bottom:4px}
+.mk{display:flex;align-items:center;gap:6px;white-space:nowrap;margin:2px 0}
+.mk input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.mk span{min-width:62px}
+.mk input[type=number]{width:62px;padding:3px 6px}
+.viewer{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column}
+.vbar{display:flex;align-items:center;gap:8px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));padding-top:calc(8px + env(safe-area-inset-top,0px));background:var(--panel);border-bottom:1px solid var(--line)}
+.viewer[hidden]{display:none}
+.vsp{flex:1}
+.vbody{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.vbody img{width:100%;max-width:1400px;background:#fff;border:1px solid var(--line)}
+.viewer.zoom .vbody{align-items:flex-start}
+.viewer.zoom .vbody img{width:250%;max-width:none}
+@media (max-width:760px){
+  #items thead{display:none}
+  #items,#items tbody{display:block}
+  #items tr.it{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-top:0;background:var(--panel)}
+  #items tr.it td{border:0;border-top:1px solid var(--line);display:block;text-align:left}
+  #items td.c-name,#items td.c-mark,#items td.c-comp,#items td.c-dw{grid-column:1/-1}
+  #items td.c-name{min-width:0}
+  #items tr.it td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted);font-family:var(--f-body)}
+  #items tr.grp{display:block}
+  #items tr.grp td{display:block;border:1px solid var(--line)}
+  .gbtn{float:none;display:flex;margin-top:6px}
+  .c-mark{display:flex!important;gap:4px 16px;flex-wrap:wrap}
+  .c-mark::before{width:100%}
+  .dw{flex-direction:row;flex-wrap:wrap;gap:4px 14px}
+}
+@media (max-width:640px){.doc{grid-template-columns:1fr}.req{text-align:left}h1{font-size:19px}}
+#vpdf{display:none}
+.offbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.offbar input[type=text]{font:inherit;background:var(--inp);color:var(--ink);border:1px solid var(--line);padding:6px 8px;min-width:180px}
+</style>
+<div class="wrap">
+  <header class="doc">
+    <div>
+      <div class="kick">Арматурный цех · ведомость учёта</div>
+      <h1>Глушитель ПР-6-2026: изготовление арматурных изделий по сменам</h1>
+    </div>
+    <div class="req">КЖИ от 26.10.2026<br>План: днём 2 компл., ночью 1 компл.</div>
+    <p class="sub">Комплект: БГ-35.35.30-6А, БГ-35.35.30-6Б, ПН.Г-1 ×2, ПВТ-1 ×2, ПВТ-2, ПЛ-35.35.14-1. Смена отмечает, какие изделия изготовила сама, а какие взяла готовыми со склада. Расход арматуры считается только по изготовленному.</p>
+  </header>
+
+  <section class="bar" aria-label="Дата и смена">
+    <label class="fld" for="date"><span>Дата</span><input type="date" id="date"></label>
+    <div class="fld"><span>Смена</span><div class="seg" id="parts" role="group" aria-label="Смена"></div></div>
+    <div class="fld"><span>Бригада</span><div class="seg" id="brigs" role="group" aria-label="Бригада"></div></div>
+    <label class="fld" for="planD"><span>План днём, компл.</span><input type="number" id="planD" min="0" max="20" value="2"></label>
+    <label class="fld" for="planN"><span>План ночью, компл.</span><input type="number" id="planN" min="0" max="20" value="1"></label>
+    <div class="fld" style="margin-left:auto;align-items:flex-end">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="mini big" id="pdfS" type="button">PDF: отчёт смены</button><button class="mini big" id="pdfD" type="button">PDF: отчёт за сутки</button><button class="btn" id="save" type="button" disabled>Сохранить смену</button></div>
+      <span class="status" id="status">Загрузка…</span>
+      <div class="offbar"><label>Кто отмечает: <input type="text" id="who" placeholder="Фамилия"></label><span class="status" id="offst"></span></div>
+    </div>
+  </section>
+
+  <section class="tiles" id="tiles" aria-label="Итоги за сутки"></section>
+
+  <section class="card">
+    <h2>1. Расход за сутки: арматура по диаметрам и металлопрокат</h2>
+    <div class="scroll"><table id="diam"></table></div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <section class="card">
+    <h2>2. Ведомость изделий</h2>
+    <p class="sub">«Норма смены» — количество на план вашей смены, «норма суток» — на все комплекты суток. Отметьте галочкой «Сделали» или «Склад»: количество подставится по норме смены. Если сделали больше или меньше, исправьте число рядом. Кнопки «Всё сделали» и «Всё со склада» отмечают сразу все изделия смены, кнопки в строке раздела — только этот раздел. Нажатая кнопка подсвечивается. Ночная смена отмечается на дату начала смены. Кнопка с маркой в колонке «Чертёж» открывает лист.</p>
+    <div class="allbar" id="allbar"><b>Все изделия смены:</b><button type="button" class="mini big" data-all="made" disabled>Всё сделали</button><button type="button" class="mini big" data-all="stock" disabled>Всё со склада</button><button type="button" class="mini big" data-all="clear" disabled>Снять всё</button><span class="status" id="allcnt"></span></div>
+    <div class="scroll"><table id="items"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>3. Замены и расчёты по прикидке</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+
+  <section class="card">
+    <h2>4. Чертежи изделий и сборок</h2>
+    <div class="files" id="files"></div>
+  </section>
+</div>
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-labelledby="vtitle">
+  <div class="vbar"><b id="vtitle">Чертёж</b><span class="vsp"></span><button type="button" class="mini" id="vzoom">Крупнее / мельче</button><a class="mini" id="vpdf" href="#" target="_blank" rel="noopener">PDF</a><button type="button" class="btn" id="vclose">Закрыть</button></div>
+  <div class="vbody" id="vbody"></div>
+</div>
+<script>
+// ---------- офлайн: данные смен хранятся в этом браузере (localStorage)
+const OFF=(()=>{
+  const KEY="glush_shifts_v1",subs=new Set();
+  function all(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){return {}}}
+  function put(o){try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){throw new Error("браузер не даёт сохранять данные (режим инкогнито или запрет хранилища)")}fire()}
+  function fire(){for(const s of subs)s()}
+  window.addEventListener("storage",e=>{if(e.key===KEY)fire()});
+  const db={collection:()=>({
+    doc:id=>({set:async v=>{const o=all();o[id]=v;put(o)}}),
+    where:(f,op,val)=>({onSnapshot:(cb)=>{
+      const run=()=>{const o=all();cb({docs:Object.values(o).filter(v=>v&&v[f]===val).map(v=>({data:()=>v}))})};
+      subs.add(run);setTimeout(run,0);return ()=>subs.delete(run)}})})};
+  const whoEl=document.getElementById("who");
+  try{whoEl.value=localStorage.getItem("who")||""}catch(e){}
+  whoEl.addEventListener("input",()=>{try{localStorage.setItem("who",whoEl.value.trim())}catch(e){}});
+  const who=()=>whoEl.value.trim();
+  const user={id:async()=>who(),me:async()=>({name:who()}),profiles:async ids=>Object.fromEntries(ids.map(i=>[i,{name:i}]))};
+  function saveBlob(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+  const downloads={save:async({filename,data})=>{
+    // на телефоне — сразу «Поделиться» (WhatsApp, Telegram, почта); иначе обычное скачивание
+    try{const f=new File([data],filename,{type:data.type||"application/pdf"});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:filename});return}}
+    catch(e){if(e&&e.name==="AbortError")return}
+    saveBlob(filename,data)}};
+  window.claude={use:async n=>n==="db"?db:n==="user"?user:n==="downloads"?downloads:null};
+  return {all};
+})();
+
+const KGM={"5 Вр-1":0.154,"6 A500C":0.222,"8 A500C":0.395,"10 A500C":0.617,"12 A240":0.888,"18 A500C":1.998,"20 A240":2.466,"28 A240":4.834};
+const STEEL=7850e-9; // кг/мм³
+const PROFS=["Лист 8 мм C245","Уголок 100×8 C245"];
+function metalProf(i){return i.prof||(i.plate?"Лист "+i.plate[0]+" мм C245":null)}
+const GROUPS=[
+ {id:"set",name:"Сетки",where:"правилка + сварка"},
+ {id:"kar",name:"Каркасы",where:"правилка + сварка"},
+ {id:"rod",name:"Отдельные стержни (рассыпью в форму)",where:"правилка"},
+ {id:"sga",name:"Фиксаторы и хомуты",where:"СГА"},
+ {id:"pet",name:"Петли",where:"рубочный станок + гибка"},
+ {id:"zd",name:"Закладные детали",where:"рубка, гибка, сварка"},
+ {id:"dn",name:"Накладные детали DN (металл)",where:"резка листа и уголка"}
+];
+// kit = шт на 1 комплект; bars = [Ø, класс, L мм, шт] на 1 шт (только свои стержни, без вложенных изделий)
+const ITEMS=[
+ {k:"s3440-2930-5",dw:[["С-3440-2930-5-1", "s3440-2930-5-1"], ["005.С-…-5-1 (6А)", "005-s3440-2930-5-1"], ["005.С-…-5-2 (6Б)", "005-s3440-2930-5-2"]],g:"set",n:"С-3440-2930-5 (все варианты -5-1 / 005.-5-1 / 005.-5-2)",kit:12,bars:[["5","Вр-1",3440,15],["5","Вр-1",2930,18]],where:"6А 6, 6Б 6",note:"Варим целыми; 2 шт маркируем 005.-5-1 (6А), 2 шт 005.-5-2 (6Б)"},
+ {k:"s3440-3440-8",dw:[["С-3440-3440-8", "s3440-3440-8"]],g:"set",n:"С-3440-3440-8",kit:4,bars:[["8","A500C",3440,36]],where:"6А 1, 6Б 1, ПЛ 2"},
+ {k:"s3440-3440-6",sh:"листа нет, состав подобран по массе 27,49 кг",dw:[["спецификация БГ-6А", "bg-6a"]],g:"set",n:"С-3440-3440-6",kit:2,bars:[["6","A500C",3440,36]],where:"6А 1, 6Б 1",est:"Листа сетки в архиве нет, есть только строка в спецификации блоков: 1 шт, 27,49 кг. Раскладку взяли как у С-3440-3440-8 (лист есть): 36 стержней по 3440 мм, шаг 200 в обе стороны, только Ø6 A500C. Проверка: 36 × 3,44 м × 0,222 кг/м = 27,49 кг, точно как в спецификации."},
+ {k:"sg1",dw:[["003.СГ-1", "sg-1"]],g:"set",n:"СГ-1 (002/003.СГ-1), гнутая Г 790+500",kit:4,bars:[["5","Вр-1",3440,7],["5","Вр-1",1290,17]],where:"6А 2, 6Б 2"},
+ {k:"sg2",dw:[["СГ-2", "sg-2"]],g:"set",n:"СГ-2, гнутая Г 790+500",kit:2,bars:[["5","Вр-1",1860,7],["5","Вр-1",1290,9]],where:"6А 1, 6Б 1"},
+ {k:"s2750-3200-1",dw:[["005.С-2750-3200-1", "s2750-3200-1"]],g:"set",n:"005.С-2750-3200-1",kit:2,bars:[["5","Вр-1",3200,14],["5","Вр-1",2750,16]],where:"ПВТ-1 ×2",note:"Варим целой, проём по месту"},
+ {k:"s2750-3200-2",dw:[["005.С-2750-3200-2", "s2750-3200-2"]],g:"set",n:"005.С-2750-3200-2",kit:1,bars:[["6","A500C",2750,10],["6","A500C",3200,10]],where:"ПВТ-2",note:"Шаг неравный, строго по листу"},
+ {k:"spg",dw:[["СП.Г-3200-2770-5-1", "spg-3200-2770-5-1"]],g:"set",n:"СП.Г-3200-2770-5-1",kit:2,bars:[["5","Вр-1",3200,14],["5","Вр-1",2770,16]],where:"ПН.Г-1 ×2"},
+ {k:"s800",dw:[["С-800-800-6-1", "s800-800-6-1"]],g:"set",n:"С-800-800-6-1",kit:4,bars:[["6","A500C",800,8]],where:"ПЛ 4"},
+
+ {k:"ka2930",dw:[["КА-2930-60-52-8.1", "ka-2930-60-52-8-1"]],g:"kar",n:"КА-2930-60-52-8.1",kit:22,bars:[["8","A500C",2930,3],["5","Вр-1",200,13]],where:"6А 11, 6Б 11"},
+ {k:"k3440-70",dw:[["К-3440-70-8", "k-3440-70-8"]],g:"kar",n:"К-3440-70-8",kit:6,bars:[["8","A500C",3440,2],["5","Вр-1",70,17]],where:"6А 3, 6Б 3"},
+ {k:"kg-a",dw:[["КГ-2930-250-8-А/В", "kg-2930-250-8-a-v"]],g:"kar",n:"КГ-2930-250-8-А",kit:4,bars:[["8","A500C",2930,5],["5","Вр-1",500,15]],where:"6А 2, 6Б 2"},
+ {k:"kg-v",dw:[["КГ-2930-250-8-А/В", "kg-2930-250-8-a-v"]],g:"kar",n:"КГ-2930-250-8-В",kit:4,bars:[["8","A500C",2930,5],["5","Вр-1",500,15]],where:"6А 2, 6Б 2",note:"На листе подписан «КГ-2930-100-8-В», считаем опечаткой (размеры 250×250)"},
+ {k:"kp4",dw:[["КП-4", "kp-4"]],g:"kar",n:"КП-4",kit:8,bars:[["18","A500C",2650,2],["28","A240",1440,1],["10","A500C",190,3]],where:"6А 4, 6Б 4",note:"Ø18 и петля Ø28 режутся на рубочном станке"},
+ {k:"pkp1",dw:[["003.ПКП-1", "pkp-1"]],g:"kar",n:"005/003.ПКП-1",kit:6,bars:[["10","A500C",3440,6],["5","Вр-1",340,34],["5","Вр-1",112,51]],where:"6А 3, 6Б 3"},
+ {k:"k3440-265",dw:[["К-3440-265-10", "k-3440-265-10"]],g:"kar",n:"К-3440-265-10",kit:4,bars:[["10","A500C",3440,2],["6","A500C",265,17]],where:"идёт в К-8 (только 6А)"},
+ {k:"k8",dw:[["К-8", "k-8"]],g:"kar",n:"К-8 (из 2 шт К-3440-265-10)",kit:2,bars:[["6","A500C",60,34]],where:"6А 2",note:"Здесь только распорки Ø6. Сами каркасы К-3440-265-10 считаются строкой выше"},
+ {k:"ka3440-86",sh:"по проекту КА-3440-100-75-8 → ставим КА-3440-100-86-8 со склада",dw:[["КА-3440-100-86-8", "ka-3440-100-86-8"], ["ПЛ-35.35.14-1", "pl-35-35-14-1"]],g:"kar",n:"КА-3440-100-86-8",kit:4,bars:[["8","A500C",3440,3],["5","Вр-1",240,18]],where:"ПЛ 4",swap:"По спецификации ПЛ-35.35.14-1 стоит каркас КА-3440-100-75-8: 4 шт по 4,65 кг. Листа на него нет, на складе нет, пришлось бы варить. Ставим КА-3440-100-86-8 (лист ПР-8-2025-КЖИ): Ø8 A500C 3440 × 3 + Ø5 Вр-1 240 × 18, 4,62 кг. Длина, ширина 100, диаметры и шаг те же, отличается только высота: 86 мм вместо 75. Берём готовые со склада."},
+
+ {k:"r10-3440",dw:[["БГ-6А", "bg-6a"], ["БГ-6Б", "bg-6b"]],g:"rod",n:"Ø10 A500C L=3440",kit:12,bars:[["10","A500C",3440,1]],where:"6А 8, 6Б 4"},
+ {k:"r8-3200",dw:[["ПВТ-1", "pvt-1"], ["ПВТ-2", "pvt-2"], ["ПН.Г-1", "png-1"]],g:"rod",n:"Ø8 A500C L=3200",kit:10,bars:[["8","A500C",3200,1]],where:"ПВТ-1 2×2, ПВТ-2 2, ПН.Г-1 2×2"},
+ {k:"r8-2770",dw:[["ПН.Г-1", "png-1"]],g:"rod",n:"Ø8 A500C L=2770",kit:8,bars:[["8","A500C",2770,1]],where:"ПН.Г-1 2×4"},
+ {k:"r8-2750",dw:[["ПВТ-1", "pvt-1"], ["ПВТ-2", "pvt-2"]],g:"rod",n:"Ø8 A500C L=2750",kit:6,bars:[["8","A500C",2750,1]],where:"ПВТ-1 2×2, ПВТ-2 2"},
+ {k:"r8-1800",dw:[["ПВТ-1", "pvt-1"]],g:"rod",n:"Ø8 A500C L=1800",kit:2,bars:[["8","A500C",1800,1]],where:"ПВТ-1 2×1"},
+ {k:"r8-1350",dw:[["ПВТ-1", "pvt-1"]],g:"rod",n:"Ø8 A500C L=1350",kit:2,bars:[["8","A500C",1350,1]],where:"ПВТ-1 2×1"},
+ {k:"r8-1080",dw:[["БГ-6Б", "bg-6b"]],g:"rod",n:"Ø8 A500C L=1080",kit:4,bars:[["8","A500C",1080,1]],where:"6Б 4"},
+
+ {k:"g500",dw:[["Г-500-500-8", "g-500-500-8"]],g:"sga",n:"Фиксатор Г-500-500-8",kit:240,bars:[["8","A500C",1000,1]],where:"6А 120, 6Б 120"},
+ {k:"p350",dw:[["П-350-72-6 / П-470-107-8", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Хомут 002.П-350-72-6",kit:60,bars:[["6","A500C",772,1]],where:"6А 30, 6Б 30"},
+ {k:"p470-107",dw:[["П-350-72-6 / П-470-107-8", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Хомут 002.П-470-107-8",kit:32,bars:[["8","A500C",1047,1]],where:"6А 16, 6Б 16"},
+ {k:"p470-84",sh:"листа нет, заготовка 2×470+84 = 1024 мм",dw:[["ПЛ-35.35.14-1", "pl-35-35-14-1"], ["П-470-107-8 (аналог)", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Фиксатор П-470-84-8",kit:36,bars:[["8","A500C",1024,1]],where:"ПЛ 36",est:"Листа нет, в спецификации ПЛ: 36 шт по 0,40 кг. Взяли форму хомута П-470-107-8 (лист есть): там заготовка 1047 мм = 2 ноги по 470 + спинка 107. Для П-470-84: 2 × 470 + 84 = 1024 мм. Проверка: 1,024 м × 0,395 кг/м = 0,40 кг, совпадает со спецификацией."},
+ {k:"p470-100",sh:"листа нет, заготовка 2×470+100 = 1040 мм",dw:[["ПЛ-35.35.14-1", "pl-35-35-14-1"], ["П-470-107-8 (аналог)", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Фиксатор П-470-100-8",kit:36,bars:[["8","A500C",1040,1]],where:"ПЛ 36",est:"Листа нет, в спецификации ПЛ: 36 шт по 0,41 кг. Взяли форму хомута П-470-107-8 (лист есть): заготовка 2 ноги по 470 + спинка. Для П-470-100: 2 × 470 + 100 = 1040 мм. Проверка: 1,040 м × 0,395 кг/м = 0,41 кг, совпадает со спецификацией."},
+
+ {k:"p2",dw:[["П-2", "p-2"]],g:"pet",n:"Петля П-2",kit:10,bars:[["12","A240",1170,1]],where:"ПВТ-1 2×2, ПВТ-2 2, ПН.Г-1 2×2"},
+ {k:"p12",sh:"по проекту П-11 (Ø8, 0,26 кг) → ставим П-12 (Ø20 A240 L=2700)",dw:[["П-12", "p-12"], ["П-11 (по проекту)", "p-11"], ["ПЛ-35.35.14-1", "pl-35-35-14-1"]],g:"pet",n:"Петля П-12",kit:4,bars:[["20","A240",2700,1]],where:"ПЛ 4",swap:"По спецификации ПЛ-35.35.14-1 стоит петля П-11: 4 шт по 2,37 кг. Но по листу П-11 это Ø8 A240 L=670, то есть 0,26 кг, масса не сходится, и для плиты 4,24 т петля Ø8 слабая. По решению цеха ставим П-12: Ø20 A240 L=2700 (2200 по оси, петля 100 над плитой, R40), 6,67 кг/шт."},
+
+ {k:"zd1",dw:[["ЗД-1", "zd-1"]],g:"zd",n:"ЗД-1",kit:74,bars:[["10","A500C",480,2]],plate:[8,120,120],where:"6А 17, 6Б 12, ПВТ-1 2×7, ПВТ-2 5, ПН.Г-1 2×9, ПЛ 8"},
+ {k:"zd2",dw:[["ЗД-2", "zd-2"]],g:"zd",n:"ЗД-2",kit:20,bars:[["10","A500C",400,2]],plate:[8,120,120],where:"6А 6, 6Б 12, ПВТ-2 2"},
+ {k:"zd5",dw:[["ЗД-5", "zd-5"]],g:"zd",n:"ЗД-5",kit:8,bars:[["10","A500C",464,2]],plate:[8,100,140],where:"6А 4, 6Б 4"},
+
+ {k:"dn2",prof:"Лист 8 мм C245",dw:[["DN-2","dn-2"],["Монтажный план","montazh"]],g:"dn",n:"DN-2",kit:22,metal:1.51,mat:"Лист 8×100×240 C245 (ГОСТ 19903)",where:"6А 3, 6Б 3, монтаж блоков 8, стык 6Б с ПЛ 8",note:"Количество 22 шт: «Комплектация блока» 6А — 3, 6Б — 3; «Монтажный план»: стык 6А с 6Б — 8, стык 6Б с плитой ПЛ — 8."},
+ {k:"dn6",prof:"Уголок 100×8 C245",dw:[["DN-6","dn-6"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-6",kit:21,metal:1.23,mat:"Уголок 100×8 L=100 C245 (ГОСТ 8509)",where:"6А 14, 6Б 7"},
+ {k:"dn13",prof:"Лист 8 мм C245",dw:[["DN-13","dn-13"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-13",kit:8,metal:1.0,mat:"Лист 8×80×200 C245 (ГОСТ 19903)",where:"6А 4, 6Б 4",note:"В спецификации блоков 6А и 6Б DN-13 записана как 1,51 кг/шт, но по листу DN-13 (8×80×200) масса 1,0 кг. Считаем по листу: 1,0 кг."}
+];
+const PAGES={"005-s3440-2930-5-1": 1, "005-s3440-2930-5-2": 1, "bg-6a": 5, "bg-6b": 4, "g-500-500-8": 1, "k-3440-265-10": 1, "k-3440-70-8": 1, "k-8": 1, "ka-2930-60-52-8-1": 1, "ka-3440-100-86-8": 1, "kg-2930-250-8-a-v": 1, "kp-4": 1, "montazh": 2, "p-11": 1, "p-12": 1, "p-2": 1, "p-350-72-6_p-470-107-8": 1, "pkp-1": 1, "pl-35-35-14-1": 1, "png-1": 2, "pvt-1": 2, "pvt-2": 2, "s2750-3200-1": 1, "s2750-3200-2": 1, "s3440-2930-5-1": 1, "s3440-3440-8": 1, "s800-800-6-1": 1, "sg-1": 1, "sg-2": 1, "spg-3200-2770-5-1": 1, "zd-1": 1, "zd-2": 1, "zd-5": 1, "dn-2": 1, "dn-6": 1, "dn-13": 1};
+if(typeof module!=="undefined")module.exports={KGM,ITEMS,GROUPS,STEEL,PROFS};
+
+const $=s=>document.querySelector(s);
+const fmt=(v,d=1)=>v.toLocaleString("ru-RU",{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const BYK=Object.fromEntries(ITEMS.map(i=>[i.k,i]));
+const DIAS=Object.keys(KGM);
+const PN={day:"День",night:"Ночь"};
+function rebarKg(i){return (i.bars||[]).reduce((s,[d,c,L,n])=>s+KGM[d+" "+c]*L/1000*n,0)}
+function metalKg(i){return i.metal||(i.plate?i.plate[0]*i.plate[1]*i.plate[2]*STEEL:0)}
+function comp(i){
+  if(i.metal)return i.mat||"";
+  let s=(i.bars||[]).map(([d,c,L,n])=>"Ø"+d+" "+c+" "+L+"×"+n).join(" + ");
+  if(i.plate)s+=" + лист "+i.plate.join("×");
+  return s;
+}
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+const st={date:today(),part:ls("part")==="night"?"night":"day",brig:Number(ls("brig"))||1,
+  planD:ls("planD")!=null?Number(ls("planD")):2,planN:ls("planN")!=null?Number(ls("planN")):1,
+  get plan(){return this.planD+this.planN},get planS(){return this.part==="day"?this.planD:this.planN},
+  day:{},draft:{made:{},stock:{}},dirty:false,db:null,user:null,unsub:null,names:{}};
+
+// ---------- шапка
+$("#date").value=st.date;$("#planD").value=st.planD;$("#planN").value=st.planN;
+const parts=$("#parts"),brigs=$("#brigs");
+for(const p of ["day","night"]){const b=document.createElement("button");b.type="button";b.textContent=PN[p];b.dataset.p=p;parts.appendChild(b)}
+for(let s=1;s<=4;s++){const b=document.createElement("button");b.type="button";b.textContent=s;b.dataset.b=s;brigs.appendChild(b)}
+function paintSeg(){parts.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.p===st.part)));brigs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(Number(b.dataset.b)===st.brig)))}
+let leaveArmed=false;
+function canLeave(){if(!st.dirty||leaveArmed){leaveArmed=false;return true}leaveArmed=true;setStatus('<span class="dirty">Есть несохранённые отметки. Сохраните или нажмите ещё раз, чтобы уйти без сохранения.</span>');return false}
+parts.addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.dataset.p===st.part)return;if(!canLeave())return;st.part=b.dataset.p;ls("part",st.part);loadDraft();render()});
+brigs.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;st.brig=Number(b.dataset.b);ls("brig",String(st.brig));if(st.day[st.part])markDirty();render()});
+for(const f of ["planD","planN"])$("#"+f).addEventListener("input",e=>{st[f]=Math.max(0,Math.min(20,Number(e.target.value)||0));ls(f,String(st[f]));render()});
+$("#date").addEventListener("change",e=>{if(!e.target.value)return;if(!canLeave()){e.target.value=st.date;return}st.date=e.target.value;subscribe();loadDraft();render()});
+function setStatus(h){$("#status").innerHTML=h}
+function markDirty(){st.dirty=true;leaveArmed=false;setStatus('<span class="dirty">'+PN[st.part]+': есть несохранённые отметки</span>');$("#save").disabled=!st.db}
+
+// ---------- данные
+function loadDraft(){const d=st.day[st.part];if(d&&d.brigade)st.brig=d.brigade;st.draft={made:{...(d?.made||{})},stock:{...(d?.stock||{})}};st.dirty=false}
+function dayTotals(){const made={},stock={};
+  for(const s of ["day","night"]){const src=s===st.part?st.draft:st.day[s];if(!src)continue;
+    for(const k in src.made||{})made[k]=(made[k]||0)+(+src.made[k]||0);
+    for(const k in src.stock||{})stock[k]=(stock[k]||0)+(+src.stock[k]||0)}
+  return {made,stock}}
+function setQty(k,f,v){v=Math.max(0,Math.floor(Number(v)||0));if(v)st.draft[f][k]=v;else delete st.draft[f][k]}
+
+// ---------- отрисовка
+function render(){
+  paintSeg();
+  const {made,stock}=dayTotals();
+  const norm={},fact={},saved={};const nM={},fM={},sM={};
+  for(const i of ITEMS){
+    for(const [d,c,L,n] of i.bars||[]){const k=d+" "+c,kg=KGM[k]*L/1000*n;
+      norm[k]=(norm[k]||0)+kg*i.kit*st.plan;fact[k]=(fact[k]||0)+kg*(made[i.k]||0);saved[k]=(saved[k]||0)+kg*(stock[i.k]||0)}
+    const m=metalKg(i),pf=metalProf(i);if(pf){nM[pf]=(nM[pf]||0)+m*i.kit*st.plan;fM[pf]=(fM[pf]||0)+m*(made[i.k]||0);sM[pf]=(sM[pf]||0)+m*(stock[i.k]||0)}}
+  const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);
+  const nT=sum(norm),fT=sum(fact),sT=sum(saved);
+  let kits=Infinity,neck=null;
+  for(const i of ITEMS){const k=Math.floor(((made[i.k]||0)+(stock[i.k]||0))/i.kit);if(k<kits){kits=k;neck=i}}
+  let nPcs=0,mPcs=0,mNames=0,lPcs=0,lNames=0,worst=null,worstL=0;
+  for(const i of ITEMS){const nn=i.kit*st.plan,m=made[i.k]||0,l=Math.max(0,nn-m-(stock[i.k]||0));nPcs+=nn;mPcs+=Math.min(m,nn);if(m)mNames++;if(l){lPcs+=l;lNames++;if(l>worstL){worstL=l;worst=i}}}
+  const per=nT/Math.max(1,st.plan);const stPcs=ITEMS.reduce((a,i)=>a+(stock[i.k]||0),0),stNames=ITEMS.filter(i=>stock[i.k]).length;
+  $("#tiles").innerHTML=`
+   <div class="tile"><small>Закрыто позиций на сутки</small><b class="num">${ITEMS.length-lNames} из ${ITEMS.length}</b><small>сделали ${mPcs} шт изделий (${mNames} наименований)</small></div>
+   <div class="tile"><small>Не хватает до плана</small><b class="num">${lNames} позиций</b><small>${lPcs?"всего "+lPcs+" шт; больше всего: "+esc(worst.n)+" — "+worstL+" шт":"всё закрыто"}</small></div>
+   <div class="tile"><small>Взяли готовым со склада</small><b class="num">${stPcs} шт</b><small>${stNames} наименований изделий</small></div>
+   <div class="tile"><small>Изделий хватает на</small><b class="num">${kits} из ${st.plan} компл.</b><small>${kits>=st.plan?"план закрыт":(fT+sT)===0?"за сутки пока ничего не отмечено":"меньше всего: "+esc(neck.n)}</small></div>`;
+  let h=`<thead><tr><th>Ø, класс</th><th class="r">кг/м</th><th class="r">Норма, кг</th><th class="r">Израсходовано, кг</th><th class="r">Осталось сделать, кг</th></tr></thead><tbody>`;
+  for(const k of DIAS)h+=`<tr><td class="name">Ø${k}</td><td class="r num">${fmt(KGM[k],3)}</td><td class="r num">${fmt(norm[k])}</td><td class="r num">${fmt(fact[k]||0)}</td><td class="r num">${fmt(Math.max(0,norm[k]-(fact[k]||0)-(saved[k]||0)))}</td></tr>`;
+  h+=`<tr class="tot"><td>Итого арматура</td><td></td><td class="r num">${fmt(nT)}</td><td class="r num">${fmt(fT)}</td><td class="r num">${fmt(Math.max(0,nT-fT-sT))}</td></tr>`;
+  h+=`<tr class="grp"><td colspan="5">Металлопрокат (закладные и накладные детали)</td></tr>`;
+  for(const pf of PROFS)h+=`<tr><td class="name">${pf}</td><td></td><td class="r num">${fmt(nM[pf]||0)}</td><td class="r num">${fmt(fM[pf]||0)}</td><td class="r num">${fmt(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0)))}</td></tr>`;
+  h+=`</tbody>`;
+  $("#diam").innerHTML=h;
+  $("#log").innerHTML=["day","night"].map(s=>{const d=st.day[s];if(!d)return `<span>${PN[s]}: нет записи</span>`;
+    const t=d.at?new Date(d.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):"";
+    return `<span>${PN[s]}, бригада ${d.brigade||"?"}: сохранил(а) ${esc(st.names[d.by]||"участник")} в ${t}</span>`}).join("");
+  renderItems(made,stock);
+  $("#save").disabled=!st.db||!st.dirty;
+  document.querySelectorAll("#allbar button[data-all]").forEach(b=>{b.disabled=!st.db;if(b.dataset.all!=="clear")b.setAttribute("aria-pressed",String(allIn(null,b.dataset.all)))});
+  const cnt=ITEMS.filter(i=>(st.draft.made[i.k]||0)+(st.draft.stock[i.k]||0)>0).length;$("#allcnt").textContent="Отмечено "+cnt+" из "+ITEMS.length+" изделий";
+}
+function renderItems(made,stock){
+  const dis=st.db?"":"disabled";
+  let t=`<thead><tr><th>Изделие</th><th>Чертёж</th><th>Состав на 1 шт</th><th class="r">На компл.</th><th class="r">Норма смены</th><th class="r">Норма суток</th><th class="r">Сутки: сделали / склад</th><th class="inp">${PN[st.part]}: отметка</th></tr></thead><tbody>`;
+  for(const g of GROUPS){
+    t+=`<tr class="grp"><td colspan="8"><span class="gname">${esc(g.name)}</span><span class="gwhere">${esc(g.where)}</span><span class="gbtn"><button type="button" class="mini" data-bulk="made" data-g="${g.id}" aria-pressed="${allIn(g.id,"made")}" ${dis}>Раздел: сделали</button><button type="button" class="mini" data-bulk="stock" data-g="${g.id}" aria-pressed="${allIn(g.id,"stock")}" ${dis}>Раздел: со склада</button><button type="button" class="mini" data-bulk="clear" data-g="${g.id}" ${dis}>Снять</button></span></td></tr>`;
+    for(const i of ITEMS.filter(x=>x.g===g.id)){
+      const ns=i.kit*st.planS,nd=i.kit*st.plan,m=made[i.k]||0,s=stock[i.k]||0,p=Math.min(100,(m+s)/Math.max(1,nd)*100);
+      const dm=st.draft.made[i.k]||0,ds=st.draft.stock[i.k]||0;
+      const tags=(i.swap?'<span class="tag swap">замена</span>':"")+(i.est?'<span class="tag est">прикидка</span>':"")+((m+s)>=nd?'<span class="tag ok">норма суток есть</span>':"");
+      const ex=(i.swap?`<details class="expl swap"><summary><b>Замена:</b> ${esc(i.sh)}</summary>${esc(i.swap)}</details>`:"")
+        +(i.est?`<details class="expl est"><summary><b>Прикидка:</b> ${esc(i.sh)}</summary>${esc(i.est)}</details>`:"")
+        +(i.note?`<div class="expl plain">${esc(i.note)}</div>`:"");
+      const dw=(i.dw||[]).map(([l,f])=>`<button type="button" class="dwb" data-f="${f}" data-l="${esc(l)}">${esc(l)}</button>`).join("");
+      t+=`<tr class="it${dm?" mm":""}${ds?" ms":""}">
+        <td class="c-name"><div class="name">${esc(i.n)}</div><div class="comp">${esc(i.where)}</div>${tags}${ex}</td>
+        <td class="c-dw" data-l="Чертёж"><div class="dw">${dw}</div></td>
+        <td class="c-comp comp" data-l="Состав">${esc(comp(i))}</td>
+        <td class="r num" data-l="На компл.">${i.kit}</td>
+        <td class="r num" data-l="Норма смены"><b>${ns}</b></td>
+        <td class="r num" data-l="Норма суток">${nd}</td>
+        <td class="r num" data-l="Сутки">${m} / ${s}<div class="pg" aria-hidden="true"><i style="width:${p}%"></i></div></td>
+        <td class="inp c-mark" data-l="${PN[st.part]}">
+          <label class="mk"><input type="checkbox" id="cm-${i.k}" data-k="${i.k}" data-f="made" ${dm?"checked":""} ${dis}><span>Сделали</span><input type="number" min="0" id="qm-${i.k}" data-k="${i.k}" data-f="made" value="${dm||""}" placeholder="—" aria-label="${esc(i.n)}: сделали, шт" ${dis}></label>
+          <label class="mk"><input type="checkbox" id="cs-${i.k}" data-k="${i.k}" data-f="stock" ${ds?"checked":""} ${dis}><span>Склад</span><input type="number" min="0" id="qs-${i.k}" data-k="${i.k}" data-f="stock" value="${ds||""}" placeholder="—" aria-label="${esc(i.n)}: со склада, шт" ${dis}></label>
+        </td></tr>`;
+    }
+  }
+  const ae=document.activeElement?.id,tb=$("#items"),open=[...tb.querySelectorAll("details[open]")].map(d=>d.closest("tr").querySelector("[data-k]")?.dataset.k);
+  tb.innerHTML=t+"</tbody>";
+  open.forEach(k=>{const r=document.getElementById("cm-"+k)?.closest("tr");r?.querySelectorAll("details").forEach(d=>d.open=true)});
+  if(ae&&document.getElementById(ae))document.getElementById(ae).focus({preventScroll:true});
+}
+const tb=$("#items");
+tb.addEventListener("change",e=>{const el=e.target;if(el.type!=="checkbox"||!el.dataset.k)return;
+  const i=BYK[el.dataset.k],ns=i.kit*st.planS,other=el.dataset.f==="made"?"stock":"made";
+  setQty(i.k,el.dataset.f,el.checked?((ns-(st.draft[other][i.k]||0))>0?ns-(st.draft[other][i.k]||0):ns):0);markDirty();render()});
+tb.addEventListener("input",e=>{const el=e.target;if(el.type!=="number"||!el.dataset.k)return;
+  setQty(el.dataset.k,el.dataset.f,el.value);const cb=document.getElementById((el.dataset.f==="made"?"cm-":"cs-")+el.dataset.k);if(cb)cb.checked=!!st.draft[el.dataset.f][el.dataset.k];
+  markDirty();clearTimeout(window._rt);window._rt=setTimeout(render,700)});
+tb.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.f)return openViewer(b.dataset.f,b.dataset.l);
+  if(b.dataset.bulk)bulk(b.dataset.bulk,b.dataset.g);
+});
+function bulk(kind,g){{for(const i of ITEMS.filter(x=>!g||x.g===g)){const ns=i.kit*st.planS;
+      if(kind==="clear"){setQty(i.k,"made",0);setQty(i.k,"stock",0)}
+      else{const o=kind==="made"?"stock":"made";setQty(i.k,o,0);setQty(i.k,kind,ns)}}
+    markDirty();render()}
+}
+function allIn(g,f){return ITEMS.filter(x=>!g||x.g===g).every(i=>(st.draft[f][i.k]||0)>0)}
+document.querySelector("#allbar").addEventListener("click",e=>{const b=e.target.closest("button[data-all]");if(b&&st.db)bulk(b.dataset.all,null)});
+$("#save").addEventListener("click",async()=>{
+  if(!st.db)return;$("#save").disabled=true;setStatus("Сохраняю…");
+  try{const by=st.user?await st.user.id():null;
+    await st.db.collection("shifts").doc(st.date+"_"+st.part).set({date:st.date,part:st.part,brigade:st.brig,made:st.draft.made,stock:st.draft.stock,by:by||"",at:new Date().toISOString()});
+    st.dirty=false;setStatus(PN[st.part]+" сохранена, бригада "+st.brig)}
+  catch(e){setStatus('<span class="dirty">Не сохранилось: '+esc(e.message||e.code||"ошибка")+'. </span>');$("#save").disabled=false}
+});
+
+// ---------- просмотр чертежей
+const vw=$("#viewer");
+function openViewer(f,l){
+  const n=PAGES[f]||1;$("#vtitle").textContent=l;
+  $("#vbody").innerHTML=Array.from({length:n},(_,j)=>`<img src="img/${f}-${j+1}.jpg" alt="${esc(l)}, лист ${j+1}" loading="lazy">`).join("");
+  $("#vpdf").href="drawings/"+f+".pdf";vw.hidden=false;vw.classList.remove("zoom");document.body.style.overflow="hidden";$("#vclose").focus()}
+function closeViewer(){vw.hidden=true;document.body.style.overflow="";$("#vbody").innerHTML=""}
+$("#vclose").addEventListener("click",closeViewer);
+$("#vzoom").addEventListener("click",()=>vw.classList.toggle("zoom"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!vw.hidden)closeViewer()});
+document.addEventListener("click",e=>{const b=e.target.closest(".fileb");if(b)openViewer(b.dataset.f,b.dataset.l)});
+
+function notes(){
+  $("#notes").innerHTML=ITEMS.filter(i=>i.est||i.swap).map(i=>`<li><div class="name">${esc(i.n)} <span class="tag ${i.swap?"swap":"est"}">${i.swap?"замена":"прикидка"}</span></div><div class="expl ${i.swap?"swap":"est"}"><b>${esc(i.sh)}.</b> ${esc(i.swap||i.est)}</div></li>`).join("");
+  const F=[["БГ-35.35.30-6А","bg-6a"],["БГ-35.35.30-6Б","bg-6b"],["ПН.Г-1","png-1"],["ПВТ-1","pvt-1"],["ПВТ-2","pvt-2"],["ПЛ-35.35.14-1","pl-35-35-14-1"],["Монтажный план блоков","montazh"]];
+  const seen=new Set(F.map(x=>x[1])),rest=[];ITEMS.forEach(i=>(i.dw||[]).forEach(([l,f])=>{if(!seen.has(f)){seen.add(f);rest.push([l,f])}}));
+  $("#files").innerHTML=F.concat(rest).map(([l,f])=>`<button type="button" class="fileb" data-f="${f}" data-l="${esc(l)}">${esc(l)}</button>`).join("");
+}
+async function names(){if(!st.user)return;const ids=[...new Set(Object.values(st.day).map(d=>d.by).filter(Boolean))];if(!ids.length)return;
+  try{const ps=await st.user.profiles(ids);for(const id of ids)st.names[id]=ps[id]?.name||"участник"}catch(e){}}
+function subscribe(){
+  if(!st.db)return;if(st.unsub)st.unsub();st.day={};
+  st.unsub=st.db.collection("shifts").where("date","==",st.date).onSnapshot(async snap=>{
+    const day={};snap.docs.forEach(d=>{const v=d.data();if(v&&v.part)day[v.part]=v});
+    st.day=day;if(!st.dirty)loadDraft();await names();render();
+    if(!st.dirty)setStatus(st.day[st.part]?PN[st.part]+" уже отмечена, можно поправить":PN[st.part]+": пока пусто");
+  },e=>setStatus('<span class="dirty">База недоступна: '+esc(e.message||e.code)+'</span>'))}
+
+// ---------- выгрузка PDF
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("не загрузилась библиотека PDF"));document.head.appendChild(s)})}
+async function pdfLib(){if(window.pdfMake&&window.pdfMake.vfs&&Object.keys(window.pdfMake.vfs).length)return window.pdfMake;
+  await loadScript("lib/pdfmake.min.js");
+  await loadScript("lib/vfs_fonts.js");return window.pdfMake}
+function ddmm(d){const [y,m,dd]=d.split("-");return dd+"."+m+"."+y}
+async function report(kind){
+  const btn=kind==="shift"?$("#pdfS"):$("#pdfD");btn.disabled=true;const old=btn.textContent;btn.textContent="Готовлю PDF…";
+  try{
+    const dl=await window.claude?.use?.("downloads");
+    
+    const pm=await pdfLib();
+    let made,stock,plan,title;
+    if(kind==="shift"){made=st.draft.made;stock=st.draft.stock;plan=st.planS;title="Отчёт смены: "+PN[st.part].toLowerCase()+", бригада "+st.brig}
+    else{const t=dayTotals();made=t.made;stock=t.stock;plan=st.plan;title="Отчёт за сутки (день + ночь)"}
+    let who="";try{const me=st.user?await st.user.me():null;who=me&&me.name||""}catch(e){}
+    const n2=v=>fmt(v,1);
+    const norm={},fact={},sv={};let nT=0,fT=0,sT=0,kits=Infinity;const nM={},fM={},sM={};
+    const rows=[[{text:"Изделие",style:"th"},{text:"Норма, шт",style:"th"},{text:"Сделали, шт",style:"th"},{text:"Со склада, шт",style:"th"},{text:"Не хватает, шт",style:"th"}]];
+    for(const g of GROUPS){rows.push([{text:g.name,colSpan:5,style:"grp"},"","","",""]);
+      for(const i of ITEMS.filter(x=>x.g===g.id)){const nn=i.kit*plan,m=made[i.k]||0,s=stock[i.k]||0;
+        kits=Math.min(kits,Math.floor((m+s)/i.kit));
+        for(const [d,c,Lm,q] of i.bars||[]){const k=d+" "+c,w=KGM[k]*Lm/1000*q;norm[k]=(norm[k]||0)+w*nn;fact[k]=(fact[k]||0)+w*m;sv[k]=(sv[k]||0)+w*s}
+        const pf=metalProf(i);if(pf){const w=metalKg(i);nM[pf]=(nM[pf]||0)+w*nn;fM[pf]=(fM[pf]||0)+w*m;sM[pf]=(sM[pf]||0)+w*s}
+        const lack=Math.max(0,nn-m-s);
+        rows.push([{text:i.n+(i.swap?"  (замена)":""),style:"td"},{text:String(nn),style:"tn"},{text:m?String(m):"—",style:"tn"},{text:s?String(s):"—",style:"tn"},{text:lack?String(lack):"—",style:lack?"tbad":"tn"}])}}
+    const dr=[[{text:"Ø, класс",style:"th"},{text:"Норма, кг",style:"th"},{text:"Израсходовано, кг",style:"th"},{text:"Осталось сделать, кг",style:"th"}]];
+    for(const k of DIAS){nT+=norm[k]||0;fT+=fact[k]||0;sT+=sv[k]||0;dr.push([{text:"Ø"+k,style:"td"},{text:n2(norm[k]||0),style:"tn"},{text:n2(fact[k]||0),style:"tn"},{text:n2(Math.max(0,(norm[k]||0)-(fact[k]||0)-(sv[k]||0))),style:"tn"}])}
+    dr.push([{text:"Итого арматура",style:"tdb"},{text:n2(nT),style:"tnb"},{text:n2(fT),style:"tnb"},{text:n2(Math.max(0,nT-fT-sT)),style:"tnb"}]);
+    dr.push([{text:"Металлопрокат (закладные и накладные детали)",colSpan:4,style:"grp"},"","",""]);
+    for(const pf of PROFS)dr.push([{text:pf,style:"td"},{text:n2(nM[pf]||0),style:"tn"},{text:n2(fM[pf]||0),style:"tn"},{text:n2(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0))),style:"tn"}]);
+    const swaps=ITEMS.filter(i=>i.swap).map(i=>({text:i.n+": "+i.sh,style:"small"}));
+    const doc={pageSize:"A4",pageMargins:[36,40,36,40],defaultStyle:{font:"Roboto",fontSize:9},
+      content:[
+        {text:"Арматурный цех · Глушитель ПР-6-2026 (КЖИ от 26.10.2026)",style:"kick"},
+        {text:title,style:"h1"},
+        {columns:[{text:"Дата: "+ddmm(st.date)+"\nПлан: "+plan+" компл."+(kind==="day"?" (день "+st.planD+" + ночь "+st.planN+")":"")},{text:"Сформировал: "+(who||"—")+"\nВремя: "+new Date().toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}),alignment:"right"}],margin:[0,4,0,10]},
+        {table:{widths:["*","*","*","*"],body:[[{text:"Закрыто позиций",style:"th"},{text:"Не хватает до плана",style:"th"},{text:"Взяли готовым со склада",style:"th"},{text:"Изделий хватает на",style:"th"}],[{text:ITEMS.filter(i=>(made[i.k]||0)+(stock[i.k]||0)>=i.kit*plan).length+" из "+ITEMS.length,style:"big"},{text:ITEMS.filter(i=>(made[i.k]||0)+(stock[i.k]||0)<i.kit*plan).length+" позиций",style:"big"},{text:ITEMS.reduce((a,i)=>a+(stock[i.k]||0),0)+" шт",style:"big"},{text:kits+" из "+plan+" компл.",style:"big"}]]},layout:"lightHorizontalLines",margin:[0,0,0,12]},
+        {text:"Расход арматуры и металлопроката",style:"h2"},
+        {table:{headerRows:1,widths:["*",80,100,90],body:dr},layout:{hLineColor:"#9aa3ad",vLineColor:"#9aa3ad"},margin:[0,0,0,12]},
+        {text:"Изделия",style:"h2"},
+        {table:{headerRows:1,widths:["*",55,60,65,65],body:rows},layout:{hLineColor:"#9aa3ad",vLineColor:"#9aa3ad"}},
+        {text:"Замены относительно проекта",style:"h2",margin:[0,12,0,4]},...swaps,
+        {text:"Расход считается только по изготовленному. «Со склада» — изделия взяты готовыми, арматура не расходовалась.",style:"small",margin:[0,8,0,0]}
+      ],
+      styles:{kick:{fontSize:8,color:"#566170"},h1:{fontSize:15,bold:true,margin:[0,2,0,0]},h2:{fontSize:11,bold:true,margin:[0,0,0,4]},
+        th:{bold:true,fontSize:8.5,fillColor:"#e1e5ea"},grp:{bold:true,fillColor:"#eef1f4"},td:{},tdb:{bold:true},tn:{alignment:"right"},tnb:{alignment:"right",bold:true},tbad:{alignment:"right",color:"#a3321f",bold:true},big:{fontSize:13,bold:true},small:{fontSize:8,color:"#444"}},
+      footer:(c,t)=>({text:"Лист "+c+" из "+t,alignment:"right",fontSize:7,margin:[0,10,36,0],color:"#888"})};
+    const blob=await new Promise(ok=>pm.createPdf(doc).getBlob(ok));
+    const fn="Глушитель_"+st.date+"_"+(kind==="shift"?(st.part==="day"?"день":"ночь")+"_бригада"+st.brig:"сутки")+".pdf";
+    await dl.save({filename:fn,data:blob});setStatus("PDF сохранён: "+fn);
+  }catch(e){if(e&&e.code==="declined")setStatus("Сохранение PDF отменено");else setStatus('<span class="dirty">PDF не получился: '+esc(e.message||e.code||"ошибка")+'</span>')}
+  finally{btn.disabled=false;btn.textContent=old}
+}
+$("#pdfS").addEventListener("click",()=>report("shift"));
+$("#pdfD").addEventListener("click",()=>report("day"));
+
+notes();loadDraft();render();
+(async()=>{const c=window.claude;
+  if(!c||!c.use){setStatus("Откройте страницу в claude.ai, чтобы отмечать");return}
+  const [db,user]=await Promise.all([c.use("db"),c.use("user")]);st.user=user;st.db=db;
+  if(!db){setStatus("Отмечать могут только вошедшие в claude.ai участники с доступом на редактирование");render();return}
+  subscribe();render()})();
+
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{
+  const ok=()=>{document.getElementById("offst").textContent="Сохранено на телефоне, работает без интернета"};
+  if(navigator.serviceWorker.controller)ok();navigator.serviceWorker.addEventListener("controllerchange",ok);
+  r.addEventListener("updatefound",()=>{document.getElementById("offst").textContent="Скачиваю для работы без интернета…"})}).catch(()=>{});</script>
