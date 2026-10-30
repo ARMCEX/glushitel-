@@ -127,6 +127,7 @@ details.expl[open] summary{margin-bottom:4px}
   .dw{flex-direction:row;flex-wrap:wrap;gap:4px 14px}
 }
 @media (max-width:640px){.doc{grid-template-columns:1fr}.req{text-align:left}h1{font-size:19px}}
+.muted{color:var(--muted);font-weight:400}
 #vpdf{display:none}
 .offbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .offbar input[type=text]{font:inherit;background:var(--inp);color:var(--ink);border:1px solid var(--line);padding:6px 8px;min-width:180px}
@@ -214,8 +215,8 @@ const OFF=(()=>{
 
 const KGM={"5 Вр-1":0.154,"6 A500C":0.222,"8 A500C":0.395,"10 A500C":0.617,"12 A240":0.888,"18 A500C":1.998,"20 A240":2.466,"28 A240":4.834};
 const STEEL=7850e-9; // кг/мм³
-const PROFS=["Лист 8 мм C245","Уголок 100×8 C245"];
-function metalProf(i){return i.prof||(i.plate?"Лист "+i.plate[0]+" мм C245":null)}
+// металл — отдельными позициями расхода, как в 1С: лист Д×Ш×толщина, уголок
+function metalProf(i){return i.prof||(i.plate?"Лист "+i.plate[1]+"×"+i.plate[2]+"×"+i.plate[0]+" мм":null)}
 const GROUPS=[
  {id:"set",name:"Сетки",where:"правилка + сварка"},
  {id:"kar",name:"Каркасы",where:"правилка + сварка"},
@@ -268,12 +269,14 @@ const ITEMS=[
  {k:"zd2",dw:[["ЗД-2", "zd-2"]],g:"zd",n:"ЗД-2",kit:20,bars:[["10","A500C",400,2]],plate:[8,120,120],where:"6А 6, 6Б 12, ПВТ-2 2"},
  {k:"zd5",dw:[["ЗД-5", "zd-5"]],g:"zd",n:"ЗД-5",kit:8,bars:[["10","A500C",464,2]],plate:[8,100,140],where:"6А 4, 6Б 4"},
 
- {k:"dn2",prof:"Лист 8 мм C245",dw:[["DN-2","dn-2"],["Монтажный план","montazh"]],g:"dn",n:"DN-2",kit:22,metal:1.51,mat:"Лист 8×100×240 C245 (ГОСТ 19903)",where:"6А 3, 6Б 3, монтаж блоков 8, стык 6Б с ПЛ 8",note:"Количество 22 шт: «Комплектация блока» 6А — 3, 6Б — 3; «Монтажный план»: стык 6А с 6Б — 8, стык 6Б с плитой ПЛ — 8."},
- {k:"dn6",prof:"Уголок 100×8 C245",dw:[["DN-6","dn-6"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-6",kit:21,metal:1.23,mat:"Уголок 100×8 L=100 C245 (ГОСТ 8509)",where:"6А 14, 6Б 7"},
- {k:"dn13",prof:"Лист 8 мм C245",dw:[["DN-13","dn-13"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-13",kit:8,metal:1.0,mat:"Лист 8×80×200 C245 (ГОСТ 19903)",where:"6А 4, 6Б 4",note:"В спецификации блоков 6А и 6Б DN-13 записана как 1,51 кг/шт, но по листу DN-13 (8×80×200) масса 1,0 кг. Считаем по листу: 1,0 кг."}
+ {k:"dn2",prof:"Лист 100×240×8 мм",dw:[["DN-2","dn-2"],["Монтажный план","montazh"]],g:"dn",n:"DN-2",kit:22,metal:1.51,mat:"Лист 8×100×240 C245 (ГОСТ 19903)",where:"6А 3, 6Б 3, монтаж блоков 8, стык 6Б с ПЛ 8",note:"Количество 22 шт: «Комплектация блока» 6А — 3, 6Б — 3; «Монтажный план»: стык 6А с 6Б — 8, стык 6Б с плитой ПЛ — 8."},
+ {k:"dn6",prof:"Уголок 100×100×8 мм",dw:[["DN-6","dn-6"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-6",kit:21,metal:1.23,mat:"Уголок 100×8 L=100 C245 (ГОСТ 8509)",where:"6А 14, 6Б 7"},
+ {k:"dn13",prof:"Лист 80×200×8 мм",dw:[["DN-13","dn-13"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-13",kit:8,metal:1.0,mat:"Лист 8×80×200 C245 (ГОСТ 19903)",where:"6А 4, 6Б 4",note:"В спецификации блоков 6А и 6Б DN-13 записана как 1,51 кг/шт, но по листу DN-13 (8×80×200) масса 1,0 кг. Считаем по листу: 1,0 кг."}
 ];
+const PROFS=[...new Set(ITEMS.map(metalProf).filter(Boolean))];
+const PROFUSE=Object.fromEntries(PROFS.map(p=>[p,ITEMS.filter(i=>metalProf(i)===p).map(i=>i.n).join(", ")]));
 const PAGES={"005-s3440-2930-5-1": 1, "005-s3440-2930-5-2": 1, "bg-6a": 5, "bg-6b": 4, "g-500-500-8": 1, "k-3440-265-10": 1, "k-3440-70-8": 1, "k-8": 1, "ka-2930-60-52-8-1": 1, "ka-3440-100-86-8": 1, "kg-2930-250-8-a-v": 1, "kp-4": 1, "montazh": 2, "p-11": 1, "p-12": 1, "p-2": 1, "p-350-72-6_p-470-107-8": 1, "pkp-1": 1, "pl-35-35-14-1": 1, "png-1": 2, "pvt-1": 2, "pvt-2": 2, "s2750-3200-1": 1, "s2750-3200-2": 1, "s3440-2930-5-1": 1, "s3440-3440-8": 1, "s800-800-6-1": 1, "sg-1": 1, "sg-2": 1, "spg-3200-2770-5-1": 1, "zd-1": 1, "zd-2": 1, "zd-5": 1, "dn-2": 1, "dn-6": 1, "dn-13": 1};
-if(typeof module!=="undefined")module.exports={KGM,ITEMS,GROUPS,STEEL,PROFS};
+if(typeof module!=="undefined")module.exports={KGM,ITEMS,GROUPS,STEEL,PROFS,PROFUSE,metalProf};
 
 const $=s=>document.querySelector(s);
 const fmt=(v,d=1)=>v.toLocaleString("ru-RU",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -346,7 +349,7 @@ function render(){
   for(const k of DIAS)h+=`<tr><td class="name">Ø${k}</td><td class="r num">${fmt(KGM[k],3)}</td><td class="r num">${fmt(norm[k])}</td><td class="r num">${fmt(fact[k]||0)}</td><td class="r num">${fmt(Math.max(0,norm[k]-(fact[k]||0)-(saved[k]||0)))}</td></tr>`;
   h+=`<tr class="tot"><td>Итого арматура</td><td></td><td class="r num">${fmt(nT)}</td><td class="r num">${fmt(fT)}</td><td class="r num">${fmt(Math.max(0,nT-fT-sT))}</td></tr>`;
   h+=`<tr class="grp"><td colspan="5">Металлопрокат (закладные и накладные детали)</td></tr>`;
-  for(const pf of PROFS)h+=`<tr><td class="name">${pf}</td><td></td><td class="r num">${fmt(nM[pf]||0)}</td><td class="r num">${fmt(fM[pf]||0)}</td><td class="r num">${fmt(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0)))}</td></tr>`;
+  for(const pf of PROFS)h+=`<tr><td class="name">${pf} <span class="muted">(${esc(PROFUSE[pf])})</span></td><td></td><td class="r num">${fmt(nM[pf]||0)}</td><td class="r num">${fmt(fM[pf]||0)}</td><td class="r num">${fmt(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0)))}</td></tr>`;
   h+=`</tbody>`;
   $("#diam").innerHTML=h;
   $("#log").innerHTML=["day","night"].map(s=>{const d=st.day[s];if(!d)return `<span>${PN[s]}: нет записи</span>`;
@@ -474,7 +477,7 @@ async function report(kind){
     for(const k of DIAS){nT+=norm[k]||0;fT+=fact[k]||0;sT+=sv[k]||0;dr.push([{text:"Ø"+k,style:"td"},{text:n2(norm[k]||0),style:"tn"},{text:n2(fact[k]||0),style:"tn"},{text:n2(Math.max(0,(norm[k]||0)-(fact[k]||0)-(sv[k]||0))),style:"tn"}])}
     dr.push([{text:"Итого арматура",style:"tdb"},{text:n2(nT),style:"tnb"},{text:n2(fT),style:"tnb"},{text:n2(Math.max(0,nT-fT-sT)),style:"tnb"}]);
     dr.push([{text:"Металлопрокат (закладные и накладные детали)",colSpan:4,style:"grp"},"","",""]);
-    for(const pf of PROFS)dr.push([{text:pf,style:"td"},{text:n2(nM[pf]||0),style:"tn"},{text:n2(fM[pf]||0),style:"tn"},{text:n2(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0))),style:"tn"}]);
+    for(const pf of PROFS)dr.push([{text:pf+" ("+PROFUSE[pf]+")",style:"td"},{text:n2(nM[pf]||0),style:"tn"},{text:n2(fM[pf]||0),style:"tn"},{text:n2(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0))),style:"tn"}]);
     const swaps=ITEMS.filter(i=>i.swap).map(i=>({text:i.n+": "+i.sh,style:"small"}));
     const doc={pageSize:"A4",pageMargins:[36,40,36,40],defaultStyle:{font:"Roboto",fontSize:9},
       content:[
