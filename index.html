@@ -511,7 +511,7 @@ notes();loadDraft();render();
   if(!db){setStatus("Отмечать могут только вошедшие в claude.ai участники с доступом на редактирование");render();return}
   subscribe();render()})();
 
-if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{
   const ok=()=>{document.getElementById("offst").textContent="Сохранено на телефоне, работает без интернета"};
   const had=!!navigator.serviceWorker.controller;let reloaded=false;if(had)ok();
   // пришла новая версия сайта — перезагрузить сразу (если нет несохранённых отметок)
