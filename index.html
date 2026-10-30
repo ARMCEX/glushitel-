@@ -128,6 +128,8 @@ details.expl[open] summary{margin-bottom:4px}
 }
 @media (max-width:640px){.doc{grid-template-columns:1fr}.req{text-align:left}h1{font-size:19px}}
 .muted{color:var(--muted);font-weight:400}
+.mini.danger{color:var(--warn);border-color:var(--warn)}
+.mini.danger.armed{background:var(--warn);color:#fff}
 #vpdf{display:none}
 .offbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .offbar input[type=text]{font:inherit;background:var(--inp);color:var(--ink);border:1px solid var(--line);padding:6px 8px;min-width:180px}
@@ -144,7 +146,7 @@ details.expl[open] summary{margin-bottom:4px}
 
   <section class="bar" aria-label="Дата и смена">
     <label class="fld" for="date"><span>Дата</span><input type="date" id="date"></label>
-    <div class="fld"><span>Смена</span><div class="seg" id="parts" role="group" aria-label="Смена"></div></div>
+    <div class="fld"><span>Смена</span><div style="display:flex;gap:8px;flex-wrap:wrap"><div class="seg" id="parts" role="group" aria-label="Смена"></div><button type="button" class="mini big danger" id="reset" disabled>Сбросить всё</button></div></div>
     <div class="fld"><span>Бригада</span><div class="seg" id="brigs" role="group" aria-label="Бригада"></div></div>
     <label class="fld" for="planD"><span>План днём, компл.</span><input type="number" id="planD" min="0" max="20" value="2"></label>
     <label class="fld" for="planN"><span>План ночью, компл.</span><input type="number" id="planN" min="0" max="20" value="1"></label>
@@ -193,7 +195,7 @@ const OFF=(()=>{
   function fire(){for(const s of subs)s()}
   window.addEventListener("storage",e=>{if(e.key===KEY)fire()});
   const db={collection:()=>({
-    doc:id=>({set:async v=>{const o=all();o[id]=v;put(o)}}),
+    doc:id=>({set:async v=>{const o=all();o[id]=v;put(o)},delete:async()=>{const o=all();delete o[id];put(o)}}),
     where:(f,op,val)=>({onSnapshot:(cb)=>{
       const run=()=>{const o=all();cb({docs:Object.values(o).filter(v=>v&&v[f]===val).map(v=>({data:()=>v}))})};
       subs.add(run);setTimeout(run,0);return ()=>subs.delete(run)}})})};
@@ -356,7 +358,7 @@ function render(){
     const t=d.at?new Date(d.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):"";
     return `<span>${PN[s]}, бригада ${d.brigade||"?"}: сохранил(а) ${esc(st.names[d.by]||"участник")} в ${t}</span>`}).join("");
   renderItems(made,stock);
-  $("#save").disabled=!st.db||!st.dirty;
+  $("#save").disabled=!st.db||!st.dirty;$("#reset").disabled=!st.db;
   document.querySelectorAll("#allbar button[data-all]").forEach(b=>{b.disabled=!st.db;if(b.dataset.all!=="clear")b.setAttribute("aria-pressed",String(allIn(null,b.dataset.all)))});
   const cnt=ITEMS.filter(i=>(st.draft.made[i.k]||0)+(st.draft.stock[i.k]||0)>0).length;$("#allcnt").textContent="Отмечено "+cnt+" из "+ITEMS.length+" изделий";
 }
@@ -411,6 +413,17 @@ function bulk(kind,g){{for(const i of ITEMS.filter(x=>!g||x.g===g)){const ns=i.k
 }
 function allIn(g,f){return ITEMS.filter(x=>!g||x.g===g).every(i=>(st.draft[f][i.k]||0)>0)}
 document.querySelector("#allbar").addEventListener("click",e=>{const b=e.target.closest("button[data-all]");if(b&&st.db)bulk(b.dataset.all,null)});
+// сброс: стереть отметки дня и ночи за выбранную дату (второе нажатие подтверждает)
+let resetT=null;
+$("#reset").addEventListener("click",async()=>{const b=$("#reset");if(!st.db)return;
+  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Точно? Нажмите ещё раз";clearTimeout(resetT);
+    resetT=setTimeout(()=>{b.classList.remove("armed");b.textContent="Сбросить всё"},4000);return}
+  clearTimeout(resetT);b.classList.remove("armed");b.textContent="Сбросить всё";b.disabled=true;
+  try{for(const p of ["day","night"]){const d=st.db.collection("shifts").doc(st.date+"_"+p);
+      if(typeof d.delete==="function")await d.delete();else await d.set({date:"",part:p,made:{},stock:{},at:new Date().toISOString()})}
+    st.day={};st.draft={made:{},stock:{}};st.dirty=false;leaveArmed=false;render();setStatus("Сброшено: день и ночь за "+ddmm(st.date)+" пустые")}
+  catch(e){setStatus('<span class="dirty">Не сбросилось: '+esc(e.message||e.code||"ошибка")+'</span>')}
+  finally{b.disabled=!st.db}});
 $("#save").addEventListener("click",async()=>{
   if(!st.db)return;$("#save").disabled=true;setStatus("Сохраняю…");
   try{const by=st.user?await st.user.id():null;
