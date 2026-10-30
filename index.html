@@ -513,5 +513,10 @@ notes();loadDraft();render();
 
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{
   const ok=()=>{document.getElementById("offst").textContent="Сохранено на телефоне, работает без интернета"};
-  if(navigator.serviceWorker.controller)ok();navigator.serviceWorker.addEventListener("controllerchange",ok);
+  const had=!!navigator.serviceWorker.controller;let reloaded=false;if(had)ok();
+  // пришла новая версия сайта — перезагрузить сразу (если нет несохранённых отметок)
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!had){ok();return}
+    if(reloaded)return;if(st.dirty){document.getElementById("offst").textContent="Есть обновление страницы: сохраните смену и откройте заново";return}
+    reloaded=true;location.reload()});
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")r.update().catch(()=>{})});
   r.addEventListener("updatefound",()=>{document.getElementById("offst").textContent="Скачиваю для работы без интернета…"})}).catch(()=>{});</script>
