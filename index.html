@@ -167,7 +167,7 @@ select.xadd{font:inherit;font-size:13px;background:var(--inp);color:var(--ink);b
       <h1>Глушитель ПР-6-2026: изготовление арматурных изделий по сменам</h1>
     </div>
     <div class="req">Глушитель 4.0 · КЖИ ред. 2 от 30.10.2026<br>Комплект: 6А, 6Б, ПН.Г-1 ×2, ПВТ-1 ×2, ПВТ-2, ПЛ</div>
-    <p class="sub">Сначала укажите, сколько блоков, панелей и плит делает смена (раздел 1). Если к какому-то блоку или панели нужны изделия сверх чертежа, добавьте их в его строке. Норма изделий и расход арматуры считаются из этого. Потом отметьте, какие изделия сделали сами, а какие взяли готовыми со склада. Расход арматуры считается только по изготовленному.</p>
+    <p class="sub">Сначала укажите, сколько блоков, панелей и плит делает смена (раздел 1). Если к какому-то блоку или панели нужны изделия сверх чертежа, добавьте их в его строке. Норма изделий и расход арматуры считаются из этого. Все изделия к ним считаются сделанными автоматически, и расход арматуры появляется сразу. Отметьте только то, что взяли готовым со склада или сделали не по норме.</p>
   </header>
 
   <section class="bar" aria-label="Дата и смена">
@@ -197,8 +197,8 @@ select.xadd{font:inherit;font-size:13px;background:var(--inp);color:var(--ink);b
 
   <section class="card">
     <h2>3. Ведомость изделий</h2>
-    <p class="sub">«Норма смены» посчитана из раздела 1: сколько блоков, панелей и плит делает смена, плюс добавленные к ним изделия. Отметьте галочкой «Сделали» или «Склад»: количество подставится по норме смены. Если сделали больше или меньше, исправьте число рядом. Изделия, которые сегодня не нужны, скрыты. Ночная смена отмечается на дату начала смены. Кнопка с маркой в колонке «Чертёж» открывает чертёж.</p>
-    <div class="allbar" id="allbar"><b>Все изделия смены:</b><button type="button" class="mini big" data-all="made" disabled>Всё сделали</button><button type="button" class="mini big" data-all="stock" disabled>Всё со склада</button><button type="button" class="mini big" data-all="clear" disabled>Снять всё</button><span class="status" id="allcnt"></span><button type="button" class="mini" id="showall"></button></div>
+    <p class="sub">«Норма смены» посчитана из раздела 1: сколько блоков, панелей и плит делает смена, плюс добавленные к ним изделия. Всё по норме считается сделанным само («авто»). Если что-то взяли со склада, отметьте «Склад», и «Сделали» уменьшится на это число. Если сделали больше или меньше, впишите число в «Сделали». Снятая галочка «Сделали» означает, что изделие не делали. Изделия, которые сегодня не нужны, скрыты. Ночная смена отмечается на дату начала смены. Кнопка с маркой в колонке «Чертёж» открывает чертёж.</p>
+    <div class="allbar" id="allbar"><b>Все изделия смены:</b><button type="button" class="mini big" data-all="made" disabled>Всё сделали</button><button type="button" class="mini big" data-all="stock" disabled>Всё со склада</button><button type="button" class="mini big" data-all="clear" disabled>Ничего не сделали</button><span class="status" id="allcnt"></span><button type="button" class="mini" id="showall"></button></div>
     <div class="scroll"><table id="items"></table></div>
   </section>
 
@@ -392,13 +392,17 @@ const later=()=>{clearTimeout(window._rt);window._rt=setTimeout(render,700)};
 // ---------- данные
 function loadDraft(){const d=st.day[st.part];if(d&&d.brigade)st.brig=d.brigade;
   const ex={};for(const p in (d?.extra||{}))ex[p]={...d.extra[p]};
-  st.draft={plan:{...planOf(d,st.part)},extra:ex,made:{...(d?.made||{})},stock:{...(d?.stock||{})}};st.dirty=false}
+  st.draft={plan:{...planOf(d,st.part)},extra:ex,made:{...(d?.made||{})},stock:{...(d?.stock||{})},auto:d?!!d.auto:true};st.dirty=false}
+// «сделали» по умолчанию = норма смены минус взятое со склада; вписанное число (в т.ч. 0) заменяет авто
+function madeEff(src,part){const o={};if(!src)return o;const mm=src.made||{},sk=src.stock||{};
+  for(const i of ITEMS){if(i.k in mm){const v=int(mm[i.k]);if(v)o[i.k]=v}else if(src.auto){const v=normOf(i,src,part)-int(sk[i.k]);if(v>0)o[i.k]=v}}return o}
+function isAuto(k){return st.draft.auto&&!(k in st.draft.made)}
 function dayTotals(){const made={},stock={};
   for(const s of ["day","night"]){const src=srcOf(s);if(!src)continue;
-    for(const k in src.made||{})made[k]=(made[k]||0)+(+src.made[k]||0);
+    const me=madeEff(src,s);for(const k in me)made[k]=(made[k]||0)+me[k];
     for(const k in src.stock||{})stock[k]=(stock[k]||0)+(+src.stock[k]||0)}
   return {made,stock}}
-function setQty(k,f,v){v=int(v);if(v)st.draft[f][k]=v;else delete st.draft[f][k]}
+function setQty(k,f,v){if(f==="made"){if(v===""||v==null)delete st.draft.made[k];else st.draft.made[k]=int(v);return}v=int(v);if(v)st.draft[f][k]=v;else delete st.draft[f][k]}
 function setExtra(p,k,v){v=int(v);const ex=st.draft.extra;ex[p]=ex[p]||{};if(v)ex[p][k]=v;else{delete ex[p][k];if(!Object.keys(ex[p]).length)delete ex[p]}}
 
 // ---------- раздел 1: блоки, панели, плиты
@@ -469,20 +473,20 @@ function render(){
   $("#save").disabled=!st.db||!st.dirty;$("#reset").disabled=!st.db;
   $("#kitfill").disabled=$("#kitclear").disabled=!st.db;
   document.querySelectorAll("#allbar button[data-all]").forEach(b=>{b.disabled=!st.db;if(b.dataset.all!=="clear")b.setAttribute("aria-pressed",String(allIn(null,b.dataset.all)))});
-  const sh=ITEMS.filter(i=>normShift(i)>0),cnt=sh.filter(i=>(st.draft.made[i.k]||0)+(st.draft.stock[i.k]||0)>0).length;
+  const sh=ITEMS.filter(i=>normShift(i)>0),me=madeEff(st.draft,st.part),cnt=sh.filter(i=>(me[i.k]||0)+(st.draft.stock[i.k]||0)>0).length;
   $("#allcnt").textContent="Отмечено "+cnt+" из "+sh.length+" изделий смены";
 }
 function visible(i,made,stock){return st.showAll||normDay(i)>0||(made[i.k]||0)+(stock[i.k]||0)>0}
 function renderItems(made,stock){
   const dis=st.db?"":"disabled";let hidden=0;
   let t=`<thead><tr><th>Изделие</th><th>Чертёж</th><th>Состав на 1 шт</th><th class="r">Норма смены</th><th class="r">Норма суток</th><th class="r">Сутки: сделали / склад</th><th class="inp">${PN[st.part]}: отметка</th></tr></thead><tbody>`;
-  const sx=st.draft.extra;
+  const sx=st.draft.extra,me=madeEff(st.draft,st.part);
   for(const g of GROUPS){
     const its=ITEMS.filter(x=>x.g===g.id&&(visible(x,made,stock)||(hidden++,false)));if(!its.length)continue;
     t+=`<tr class="grp"><td colspan="7"><span class="gname">${esc(g.name)}</span><span class="gwhere">${esc(g.where)}</span><span class="gbtn"><button type="button" class="mini" data-bulk="made" data-g="${g.id}" aria-pressed="${allIn(g.id,"made")}" ${dis}>Раздел: сделали</button><button type="button" class="mini" data-bulk="stock" data-g="${g.id}" aria-pressed="${allIn(g.id,"stock")}" ${dis}>Раздел: со склада</button><button type="button" class="mini" data-bulk="clear" data-g="${g.id}" ${dis}>Снять</button></span></td></tr>`;
     for(const i of its){
       const ns=normShift(i),nd=normDay(i),m=made[i.k]||0,s=stock[i.k]||0,p=Math.min(100,(m+s)/Math.max(1,nd)*100);
-      const dm=st.draft.made[i.k]||0,ds=st.draft.stock[i.k]||0;
+      const dm=me[i.k]||0,ds=st.draft.stock[i.k]||0,au=isAuto(i.k);
       const xs=Object.keys(sx).filter(p=>int(sx[p][i.k])).map(p=>PBY[p].s+" +"+int(sx[p][i.k])).join(", ");
       const tags=(i.swap?'<span class="tag swap">замена</span>':"")+(xs?'<span class="tag xtra">доп.: '+esc(xs)+'</span>':"")+(nd&&(m+s)>=nd?'<span class="tag ok">норма суток есть</span>':"");
       const ex=(i.swap?`<details class="expl swap"><summary><b>Замена:</b> ${esc(i.sh)}</summary>${esc(i.swap)}</details>`:"")
@@ -496,7 +500,7 @@ function renderItems(made,stock){
         <td class="r num" data-l="Норма суток">${nd}</td>
         <td class="r num" data-l="Сутки">${m} / ${s}<div class="pg" aria-hidden="true"><i style="width:${p}%"></i></div></td>
         <td class="inp c-mark" data-l="${PN[st.part]}">
-          <label class="mk"><input type="checkbox" id="cm-${i.k}" data-k="${i.k}" data-f="made" ${dm?"checked":""} ${dis}><span>Сделали</span><input type="number" min="0" id="qm-${i.k}" data-k="${i.k}" data-f="made" value="${dm||""}" placeholder="—" aria-label="${esc(i.n)}: сделали, шт" ${dis}></label>
+          <label class="mk"><input type="checkbox" id="cm-${i.k}" data-k="${i.k}" data-f="made" ${dm?"checked":""} ${dis}><span>${au&&dm?"Сделали (авто)":"Сделали"}</span><input type="number" min="0" id="qm-${i.k}" data-k="${i.k}" data-f="made" value="${au?"":(i.k in st.draft.made?int(st.draft.made[i.k]):"")}" placeholder="${au?dm:"—"}" placeholder="—" aria-label="${esc(i.n)}: сделали, шт" ${dis}></label>
           <label class="mk"><input type="checkbox" id="cs-${i.k}" data-k="${i.k}" data-f="stock" ${ds?"checked":""} ${dis}><span>Склад</span><input type="number" min="0" id="qs-${i.k}" data-k="${i.k}" data-f="stock" value="${ds||""}" placeholder="—" aria-label="${esc(i.n)}: со склада, шт" ${dis}></label>
         </td></tr>`;
     }
@@ -510,10 +514,12 @@ function renderItems(made,stock){
 $("#showall").addEventListener("click",()=>{st.showAll=!st.showAll;render()});
 const tb=$("#items");
 tb.addEventListener("change",e=>{const el=e.target;if(el.type!=="checkbox"||!el.dataset.k)return;
-  const i=BYK[el.dataset.k],ns=normShift(i)||1,other=el.dataset.f==="made"?"stock":"made";
-  setQty(i.k,el.dataset.f,el.checked?((ns-(st.draft[other][i.k]||0))>0?ns-(st.draft[other][i.k]||0):ns):0);markDirty();render()});
+  const i=BYK[el.dataset.k],ns=normShift(i)||1,me=madeEff(st.draft,st.part);
+  if(el.dataset.f==="made"){if(!el.checked)setQty(i.k,"made",0);else if(st.draft.auto&&normShift(i))delete st.draft.made[i.k];else setQty(i.k,"made",Math.max(1,ns-int(st.draft.stock[i.k])))}
+  else{const mx=i.k in st.draft.made?int(st.draft.made[i.k]):0;setQty(i.k,"stock",el.checked?(ns-mx>0?ns-mx:ns):0)}
+  markDirty();render()});
 tb.addEventListener("input",e=>{const el=e.target;if(el.type!=="number"||!el.dataset.k)return;
-  setQty(el.dataset.k,el.dataset.f,el.value);const cb=document.getElementById((el.dataset.f==="made"?"cm-":"cs-")+el.dataset.k);if(cb)cb.checked=!!st.draft[el.dataset.f][el.dataset.k];
+  setQty(el.dataset.k,el.dataset.f,el.value);
   markDirty();later()});
 tb.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
@@ -522,9 +528,10 @@ tb.addEventListener("click",e=>{
 });
 function bulk(kind,g){for(const i of ITEMS.filter(x=>!g||x.g===g)){const ns=normShift(i);
     if(kind==="clear"){setQty(i.k,"made",0);setQty(i.k,"stock",0)}
-    else if(ns){const o=kind==="made"?"stock":"made";setQty(i.k,o,0);setQty(i.k,kind,ns)}}
+    else if(kind==="made"){setQty(i.k,"stock",0);if(st.draft.auto)delete st.draft.made[i.k];else if(ns)setQty(i.k,"made",ns)}
+    else if(ns){setQty(i.k,"made",0);setQty(i.k,"stock",ns)}}
   markDirty();render()}
-function allIn(g,f){const a=ITEMS.filter(x=>(!g||x.g===g)&&normShift(x)>0);return a.length>0&&a.every(i=>(st.draft[f][i.k]||0)>0)}
+function allIn(g,f){const a=ITEMS.filter(x=>(!g||x.g===g)&&normShift(x)>0);const src=f==="made"?madeEff(st.draft,st.part):st.draft.stock;return a.length>0&&a.every(i=>(src[i.k]||0)>0)}
 document.querySelector("#allbar").addEventListener("click",e=>{const b=e.target.closest("button[data-all]");if(b&&st.db)bulk(b.dataset.all,null)});
 // сброс: стереть отметки дня и ночи за выбранную дату (второе нажатие подтверждает)
 let resetT=null;
@@ -540,7 +547,7 @@ $("#reset").addEventListener("click",async()=>{const b=$("#reset");if(!st.db)ret
 $("#save").addEventListener("click",async()=>{
   if(!st.db)return;$("#save").disabled=true;setStatus("Сохраняю…");render();
   try{const by=st.user?await st.user.id():null;
-    await st.db.collection("shifts").doc(st.date+"_"+st.part).set({date:st.date,part:st.part,brigade:st.brig,plan:st.draft.plan,extra:st.draft.extra,made:st.draft.made,stock:st.draft.stock,by:by||"",at:new Date().toISOString(),ver:4});
+    await st.db.collection("shifts").doc(st.date+"_"+st.part).set({date:st.date,part:st.part,brigade:st.brig,plan:st.draft.plan,extra:st.draft.extra,made:st.draft.made,stock:st.draft.stock,auto:!!st.draft.auto,by:by||"",at:new Date().toISOString(),ver:5});
     ls("plan_"+st.part,JSON.stringify(st.draft.plan));
     st.dirty=false;setStatus(PN[st.part]+" сохранена, бригада "+st.brig)}
   catch(e){setStatus('<span class="dirty">Не сохранилось: '+esc(e.message||e.code||"ошибка")+'. </span>');$("#save").disabled=false}
@@ -586,7 +593,7 @@ async function report(kind){
     const dl=await window.claude?.use?.("downloads");
     const pm=await pdfLib();
     let made,stock,title,plan,extra,nf;
-    if(kind==="shift"){made=st.draft.made;stock=st.draft.stock;plan=st.draft.plan;extra=st.draft.extra;nf=normShift;title="Отчёт смены: "+PN[st.part].toLowerCase()+", бригада "+st.brig}
+    if(kind==="shift"){made=madeEff(st.draft,st.part);stock=st.draft.stock;plan=st.draft.plan;extra=st.draft.extra;nf=normShift;title="Отчёт смены: "+PN[st.part].toLowerCase()+", бригада "+st.brig}
     else{const t=dayTotals();made=t.made;stock=t.stock;plan=planDay();extra=extraDay();nf=normDay;title="Отчёт за сутки (день + ночь)"}
     let who="";try{const me=st.user?await st.user.me():null;who=me&&me.name||""}catch(e){}
     const n2=v=>fmt(v,1);
