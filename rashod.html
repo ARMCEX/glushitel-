@@ -89,8 +89,15 @@ details[open]>summary::before{content:"▾ "}
 .step.sm button{width:34px;min-height:34px;font-size:19px}
 .step.sm input{width:38px;font-size:16px}
 .spec td{vertical-align:middle}
+td.nm .ob{display:block;margin-top:3px}
+td.nm{font-size:14.5px;word-break:break-word}
 .spec td.nm{font-size:14.5px;word-break:break-word}
 tr.x td{background:var(--hi)}
+tr.off td{color:var(--muted);text-decoration:line-through}
+tr.off td .step,tr.off td .ob{text-decoration:none}
+.ob{background:var(--panel);border:1px solid var(--line);padding:5px 8px;font-size:13px;min-height:34px;color:var(--ink)}
+tr.off .ob{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.offtag{display:block;font-size:12px;color:var(--hi-ink);font-weight:700;text-decoration:none}
 tr.x td.tt{color:var(--hi-ink)}
 .xcnt{color:var(--hi-ink);font-weight:700}
 </style>
@@ -113,6 +120,12 @@ tr.x td.tt{color:var(--hi-ink)}
     <button type="button" class="btn2" id="zero">Обнулить</button>
   </div>
   <div class="prods" id="prods"></div>
+</section>
+
+<section class="panel" id="pos">
+  <div class="ph"><h2>1б. Позиции на все изделия сразу</h2><span class="sub" id="offsum"></span></div>
+  <p class="sub" style="padding:8px 12px 0">«Убрать» — позицию не делали ни для одного изделия (например, КА-2930-60-52-8.1 со всех блоков). «Сверху» — сделали ещё штук, не привязывая к изделию.</p>
+  <table><thead><tr><th>Марка</th><th>Сверху</th><th class="n">Всего</th><th class="n">кг</th></tr></thead><tbody id="posb"></tbody></table>
 </section>
 
 <section class="panel" id="itog">
@@ -155,10 +168,11 @@ const metal1=i=>i.metal||(i.plate?i.plate[0]*i.plate[1]*i.plate[2]*STEEL:0);
 $("#rev").textContent="Нормы: Глушитель 4.0, КЖИ ред. 3 от 03.11.2026. Комплект: "+PRODS.filter(p=>p.k!=="МОН").map(p=>p.s+(p.kit>1?" ×"+p.kit:"")).join(", ")+". Масса теоретическая, без отходов.";
 
 const KEY="glush_rashod_v1";
-let Q={},X={}; // Q — шт изделий; X[изделие][позиция] — сделали сверху (+) или меньше (−) нормы
-function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||"null");if(o&&typeof o==="object"){Q=o.q||{};X=o.x||{};$("#kq").value=o.kits??1;return}}catch(e){}
+let Q={},X={},G={},OFF={}; // G[позиция] — сверху без привязки к изделию; OFF[позиция] — убрана со всех изделий
+ // Q — шт изделий; X[изделие][позиция] — сделали сверху (+) или меньше (−) нормы
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||"null");if(o&&typeof o==="object"){Q=o.q||{};X=o.x||{};G=o.g||{};OFF=o.off||{};$("#kq").value=o.kits??1;return}}catch(e){}
   setKits(1)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({q:Q,x:X,kits:+$("#kq").value||0}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({q:Q,x:X,g:G,off:OFF,kits:+$("#kq").value||0}))}catch(e){}}
 const xget=(p,k)=>(X[p]&&X[p][k])||0;
 function xset(p,k,v){const i=ITEMS.find(t=>t.k===k),nrm=i.per[p]*(Q[p]||0);v=Math.round(+v)||0;v=Math.max(-nrm,Math.min(999,v));X[p]=X[p]||{};if(v)X[p][k]=v;else delete X[p][k]}
 function setKits(n){for(const p of PRODS)Q[p.k]=p.kit*n}
@@ -176,7 +190,7 @@ $("#prods").addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")e.targe
 document.querySelectorAll("[data-kit]").forEach(b=>b.addEventListener("click",()=>{$("#kq").value=clamp((+$("#kq").value||0)+ +b.dataset.kit);setKits(+$("#kq").value);render()}));
 $("#kq").addEventListener("change",()=>{$("#kq").value=clamp($("#kq").value);setKits(+$("#kq").value);render()});
 $("#setkit").addEventListener("click",()=>{setKits(clamp($("#kq").value));render()});
-$("#zero").addEventListener("click",()=>{setKits(0);X={};render()});
+$("#zero").addEventListener("click",()=>{setKits(0);X={};G={};OFF={};render()});
 
 function render(keep){
   const kits=clamp($("#kq").value);
@@ -188,7 +202,13 @@ function render(keep){
   // суммы
   const dd=Object.fromEntries(DIAS.map(d=>[d,0])),mp={},all=new Map();
   let R=0,M=0;
-  for(const i of ITEMS){let n=0;for(const [p,c] of Object.entries(i.per))n+=Math.max(0,c*(Q[p]||0)+xget(p,i.k));if(!n)continue;
+  for(const i of ITEMS){let s0=0;for(const [p,c] of Object.entries(i.per))s0+=Math.max(0,c*(Q[p]||0)+xget(p,i.k));
+    const n=OFF[i.k]?0:Math.max(0,s0+(G[i.k]||0)),tr=document.querySelector(`#posb tr[data-i="${i.k}"]`);
+    tr.classList.toggle("off",!!OFF[i.k]);tr.classList.toggle("x",!OFF[i.k]&&!!G[i.k]);tr.querySelector(".nr").textContent=s0;
+    const gi=tr.querySelector("input");if(gi!==keep)gi.value=G[i.k]>0?"+"+G[i.k]:(G[i.k]||0);
+    tr.querySelector(".ob").textContent=OFF[i.k]?"Вернуть":"Убрать";tr.querySelector(".tt").textContent=n;
+    tr.querySelector(".kg").textContent=fmt((i.g==="dn"?metal1(i):rebar1(i))*n);
+    if(!n)continue;
     for(const [d,c,L,nb] of (i.bars||[])){const kg=KGM[d+" "+c]*L/1000*nb*n;dd[d+" "+c]+=kg;R+=kg}
     const m=metal1(i)*n;M+=m;const pr=metalProf(i);if(pr)mp[pr]=(mp[pr]||0)+m;
     all.set(i,n)}
@@ -203,13 +223,15 @@ function render(keep){
   $("#all").innerHTML=h||`<tr><td colspan="3" class="empty">Ничего не выбрано</td></tr>`;
   // спецификации изделий (строятся один раз, тут только цифры)
   for(const p of PRODS){const q=Q[p.k]||0,art=$("#sp-"+p.k);let r=0,m=0,xc=0;
-    for(const tr of art.querySelectorAll("tr[data-i]")){const i=BYK[tr.dataset.i],n=i.per[p.k],x=xget(p.k,i.k),t=Math.max(0,n*q+x);
+    for(const tr of art.querySelectorAll("tr[data-i]")){const i=BYK[tr.dataset.i],n=i.per[p.k],x=xget(p.k,i.k),t=OFF[i.k]?0:Math.max(0,n*q+x);
+      tr.classList.toggle("off",!!OFF[i.k]);
       r+=rebar1(i)*t;m+=metal1(i)*t;if(x)xc++;
       tr.classList.toggle("x",!!x);tr.querySelector(".nr").textContent=n*q;
       const inp=tr.querySelector("input");if(inp!==keep)inp.value=x>0?"+"+x:x;
       tr.querySelector(".tt").textContent=t;tr.querySelector(".kg").textContent=fmt((i.g==="dn"?metal1(i):rebar1(i))*t)}
     art.querySelector(".hq").textContent="× "+q+" шт";
     art.querySelector(".mt").innerHTML=`Всего на ${q} шт${xc?` <span class="xcnt">(с изменениями: ${xc} поз.)</span>`:""}: арматура <b class="num">${fmt(r)} кг</b>, металл <b class="num">${fmt(m)} кг</b>`}
+  const offs=ITEMS.filter(i=>OFF[i.k]).map(i=>i.n);$("#offsum").textContent=offs.length?"убрано: "+offs.length:"";
   save();
 }
 $("#notes").innerHTML=ITEMS.filter(i=>i.swap).map(i=>`<li><b>${esc(i.n)}:</b> ${esc(i.swap)}</li>`).join("")+ASSUME.slice(1).map(([a,b])=>`<li><b>${esc(a)}:</b> ${esc(b)}</li>`).join("");
@@ -233,7 +255,20 @@ $("#specs").addEventListener("input",e=>{const inp=e.target.closest("input");if(
   const v=inp.value.replace(/[^\d-]/g,"");if(v===""||v==="-")return;xset(p,tr.dataset.i,parseInt(v,10));render(inp)});
 $("#specs").addEventListener("change",()=>render());
 $("#specs").addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")e.target.select()});
-prodRows();specRows();load();render();
+function posRows(){let h="";
+  for(const g of GROUPS){const gi=ITEMS.filter(i=>i.g===g.id);if(!gi.length)continue;
+    h+=`<tr class="g"><td colspan="4">${esc(g.name)}</td></tr>`+gi.map(i=>`<tr data-i="${i.k}"><td class="nm">${esc(i.n)}<small>по изделиям <span class="nr num"></span></small><button type="button" class="ob" data-off>Убрать</button></td>
+      <td><span class="step sm"><button type="button" data-g="-1" aria-label="меньше ${esc(i.n)}">−</button><input class="num" inputmode="numeric" aria-label="${esc(i.n)}, сверху"><button type="button" data-g="1" aria-label="больше ${esc(i.n)}">+</button></span></td>
+      <td class="q tt"></td><td class="n num kg"></td></tr>`).join("")}
+  $("#posb").innerHTML=h}
+function gset(k,v){v=Math.round(+v)||0;v=Math.max(-999,Math.min(999,v));if(v)G[k]=v;else delete G[k]}
+$("#posb").addEventListener("click",e=>{const tr=e.target.closest("tr[data-i]");if(!tr)return;const k=tr.dataset.i;
+  if(e.target.closest("[data-off]")){if(OFF[k])delete OFF[k];else OFF[k]=1;render();return}
+  const b=e.target.closest("button[data-g]");if(b){gset(k,(G[k]||0)+ +b.dataset.g);render()}});
+$("#posb").addEventListener("input",e=>{const inp=e.target.closest("input");if(!inp)return;const v=inp.value.replace(/[^\d-]/g,"");if(v===""||v==="-")return;gset(inp.closest("tr").dataset.i,parseInt(v,10));render(inp)});
+$("#posb").addEventListener("change",()=>render());
+$("#posb").addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")e.target.select()});
+prodRows();posRows();specRows();load();render();
 </script>
 </body>
 </html>
