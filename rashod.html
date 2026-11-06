@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Глушитель: расход по изделиям</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Глушитель">
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{
+  --bg:#eceef1; --panel:#ffffff; --head:#e1e5ea; --line:#b7bec7; --ink:#1b2430; --muted:#566170;
+  --accent:#1f3e6b; --accent-ink:#ffffff; --inp:#f4f6f8; --hi:#fff6e0; --hi-ink:#8a5a00; --zero:#f6f7f9;
+  --f-body:"PT Sans",Arial,"Helvetica Neue",sans-serif; --f-num:"PT Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14181d; --panel:#1b2128; --head:#232b34; --line:#3b4550; --ink:#dde3ea; --muted:#9aa5b2;
+  --accent:#8fb0e0; --accent-ink:#0f1722; --inp:#151a20; --hi:#2e2716; --hi-ink:#e3b45c; --zero:#171c22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181d; --panel:#1b2128; --head:#232b34; --line:#3b4550; --ink:#dde3ea; --muted:#9aa5b2;
+  --accent:#8fb0e0; --accent-ink:#0f1722; --inp:#151a20; --hi:#2e2716; --hi-ink:#e3b45c; --zero:#171c22; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.4}
+.wrap{max-width:980px;margin:0 auto;padding:14px max(16px,env(safe-area-inset-left,0px)) 60px;display:flex;flex-direction:column;gap:14px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+header{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);padding:12px 14px}
+header .kick{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+header a{color:var(--accent)}
+h1{font-size:20px;margin:4px 0 2px;text-wrap:balance}
+h2{font-size:14px;margin:0;text-transform:uppercase;letter-spacing:.05em}
+.sub{color:var(--muted);margin:0;font-size:13.5px}
+.panel{background:var(--panel);border:1px solid var(--line)}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--head);border-bottom:1px solid var(--line);flex-wrap:wrap}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);padding:7px 12px;font-weight:700}
+.btn2{background:var(--panel);border:1px solid var(--line);padding:7px 12px}
+.step{display:inline-flex;align-items:stretch;border:1px solid var(--line);background:var(--inp)}
+.step button{width:44px;min-height:44px;border:0;background:transparent;font-size:22px;font-weight:700;line-height:1;color:var(--accent)}
+.step button:active{background:var(--head)}
+.step input{width:52px;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--panel);color:var(--ink);text-align:center;font:700 19px var(--f-num);padding:0}
+.step input:focus{outline:2px solid var(--accent);outline-offset:-2px}
+.kits{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;padding:10px 12px}
+.kits label{font-weight:700}
+/* изделия */
+.prods{display:grid;grid-template-columns:1fr;gap:0}
+.prod{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)}
+.prod:first-child{border-top:0}
+.prod .nm b{font-size:16.5px}
+.prod .nm small{display:block;color:var(--muted);font-size:12.5px}
+.prod .tag{display:inline-block;font-size:12px;padding:0 6px;margin-left:4px;background:var(--hi);color:var(--hi-ink);font-weight:700}
+.tag[hidden]{display:none!important}
+.sbar{position:sticky;top:0;z-index:4;background:var(--accent);color:var(--accent-ink);padding:8px 12px;display:flex;gap:6px 16px;flex-wrap:wrap;align-items:baseline;font-weight:700}
+.sbar b{font:700 18px var(--f-num)}
+.sbar a{color:inherit;margin-left:auto;font-weight:400;font-size:13px}
+.prod.zero{background:var(--zero)}
+.prod.zero .nm b{color:var(--muted)}
+/* итоги */
+.tot{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--line)}
+.tot div{padding:9px 12px;border-left:1px solid var(--line)}
+.tot div:first-child{border-left:0}
+.tot small{display:block;color:var(--muted);font-size:12px}
+.tot b{font-size:22px}
+@media (max-width:560px){.tot b{font-size:18px}.tot div{padding:8px}}
+table{border-collapse:collapse;width:100%}
+th,td{padding:5px 8px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;background:var(--panel)}
+td.n,th.n{text-align:right;white-space:nowrap}
+td.q{text-align:right;font:700 16px var(--f-num);white-space:nowrap}
+tr.g td{background:var(--head);font-weight:700;font-size:13px}
+tr.t td{font-weight:700;background:var(--head)}
+td small{display:block;color:var(--muted);font-size:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.two>div+div{border-left:1px solid var(--line)}
+@media (max-width:640px){.two{grid-template-columns:1fr}.two>div+div{border-left:0;border-top:1px solid var(--line)}}
+details>summary{cursor:pointer;padding:9px 12px;font-weight:700;list-style:none;border-top:1px solid var(--line)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸ ";color:var(--accent)}
+details[open]>summary::before{content:"▾ "}
+.spec .ph b{font-size:16px}
+.spec .meta{padding:6px 12px;color:var(--muted);font-size:13px;display:flex;gap:6px 16px;flex-wrap:wrap}
+.spec .meta b{color:var(--ink)}
+.mini{background:transparent;border:1px solid var(--line);padding:4px 9px;font-size:13px;color:var(--accent)}
+.notes{margin:0;padding:8px 12px 10px 28px;font-size:13.5px}
+.notes li{margin:3px 0}
+.empty{padding:14px 12px;color:var(--muted)}
+.viewer{position:fixed;inset:0;background:var(--bg);z-index:9;display:flex;flex-direction:column}
+.viewer[hidden]{display:none}
+.vbar{display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.vbar b{flex:1}
+.vbody{overflow:auto;flex:1;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.vbody img{max-width:100%;height:auto;background:#fff;border:1px solid var(--line)}
+.viewer.zoom .vbody img{max-width:none;width:220%}
+.sticky{position:sticky;top:0;z-index:3}
+</style>
+<body>
+<div class="wrap">
+<header>
+  <div class="kick"><span>Арматурный цех · Глушитель ПР-6-2026</span><a href="./">← Учёт по сменам</a></div>
+  <h1>Расход арматуры по сделанным изделиям</h1>
+  <p class="sub" id="rev"></p>
+</header>
+
+<div class="sbar" aria-live="polite"><span>Арматура <b id="sR">0</b> кг</span><span>Металл <b id="sM">0</b> кг</span><a href="#itog">подробно ↓</a></div>
+
+<section class="panel">
+  <div class="ph"><h2>1. Что изготовили</h2><span class="sub">по умолчанию — 1 комплект</span></div>
+  <div class="kits">
+    <label for="kq">Комплектов:</label>
+    <span class="step"><button type="button" data-kit="-1" aria-label="минус комплект">−</button><input id="kq" class="num" inputmode="numeric" value="1" aria-label="комплектов"><button type="button" data-kit="1" aria-label="плюс комплект">+</button></span>
+    <button type="button" class="btn" id="setkit">Поставить на все изделия</button>
+    <button type="button" class="btn2" id="zero">Обнулить</button>
+  </div>
+  <div class="prods" id="prods"></div>
+</section>
+
+<section class="panel" id="itog">
+  <div class="ph"><h2>2. Расход на всё выбранное</h2><span class="sub" id="selsum"></span></div>
+  <div class="tot">
+    <div><small>Арматура</small><b class="num" id="tR">0</b><small>кг</small></div>
+    <div><small>Металл ЗД и DN</small><b class="num" id="tM">0</b><small>кг</small></div>
+    <div><small>Изделий</small><b class="num" id="tP">0</b><small id="tPs">шт</small></div>
+  </div>
+  <div class="two">
+    <div><table><thead><tr><th>Арматура</th><th class="n">кг</th></tr></thead><tbody id="dia"></tbody></table></div>
+    <div><table><thead><tr><th>Металл (как в 1С)</th><th class="n">кг</th></tr></thead><tbody id="met"></tbody></table></div>
+  </div>
+  <details id="alld"><summary>Все позиции на выбранное (сколько каких сеток, каркасов, ЗД…)</summary>
+    <table><thead><tr><th>Марка</th><th class="n">Шт</th><th class="n">кг</th></tr></thead><tbody id="all"></tbody></table>
+  </details>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:14px">
+  <h2 style="padding:0 2px">3. Спецификация каждого изделия</h2>
+  <div id="specs" style="display:flex;flex-direction:column;gap:14px"></div>
+</section>
+
+<section class="panel">
+  <div class="ph"><h2>Допущения</h2></div>
+  <ul class="notes" id="notes"></ul>
+</section>
+</div>
+
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-labelledby="vtitle">
+  <div class="vbar"><b id="vtitle">Чертёж</b><button type="button" class="mini" id="vzoom">Крупнее / мельче</button><button type="button" class="btn" id="vclose">Закрыть</button></div>
+  <div class="vbody" id="vbody"></div>
+</div>
+
+<script src="norma.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const fmt=(v,d=1)=>v.toLocaleString("ru-RU",{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const DIAS=Object.keys(KGM);
+const rebar1=i=>(i.bars||[]).reduce((a,[d,c,L,n])=>a+KGM[d+" "+c]*L/1000*n,0);
+const metal1=i=>i.metal||(i.plate?i.plate[0]*i.plate[1]*i.plate[2]*STEEL:0);
+// чертёж изделия (первый лист с его кодом)
+const PDW={"6А":"bg-1a","6Б":"bg-1b","ПНГ":"png-1","ПВТ1":"pvt-1","ПВТ3":"pvt-3","ПВТ2":"pvt-2","ПЛ":"pl-34-35-14-1","МОН":"montazh"};
+$("#rev").textContent="Нормы: Глушитель 4.0, КЖИ ред. 3 от 03.11.2026. Комплект: "+PRODS.filter(p=>p.k!=="МОН").map(p=>p.s+(p.kit>1?" ×"+p.kit:"")).join(", ")+". Масса теоретическая, без отходов.";
+
+const KEY="glush_rashod_v1";
+let Q={};
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||"null");if(o&&typeof o==="object"){Q=o.q||{};$("#kq").value=o.kits??1;return}}catch(e){}
+  setKits(1)}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({q:Q,kits:+$("#kq").value||0}))}catch(e){}}
+function setKits(n){for(const p of PRODS)Q[p.k]=p.kit*n}
+function clamp(v){v=Math.round(+v);return isFinite(v)&&v>0?Math.min(v,999):0}
+
+function prodRows(){
+  $("#prods").innerHTML=PRODS.map(p=>`<div class="prod" data-p="${p.k}">
+    <div class="nm"><b>${esc(p.s)}</b> <span class="tag" hidden></span><small>${esc(p.n)} · ${esc(p.t)} · на комплект ${p.kit} шт</small></div>
+    <span class="step"><button type="button" data-d="-1" aria-label="минус ${esc(p.s)}">−</button><input class="num" inputmode="numeric" aria-label="${esc(p.s)}, шт"><button type="button" data-d="1" aria-label="плюс ${esc(p.s)}">+</button></span>
+  </div>`).join("");
+}
+$("#prods").addEventListener("click",e=>{const b=e.target.closest("button[data-d]");if(!b)return;const k=b.closest(".prod").dataset.p;Q[k]=clamp((Q[k]||0)+ +b.dataset.d);render()});
+$("#prods").addEventListener("input",e=>{const inp=e.target.closest("input");if(!inp)return;const k=inp.closest(".prod").dataset.p;Q[k]=clamp(inp.value.replace(/\D/g,""));render(inp)});
+$("#prods").addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")e.target.select()});
+document.querySelectorAll("[data-kit]").forEach(b=>b.addEventListener("click",()=>{$("#kq").value=clamp((+$("#kq").value||0)+ +b.dataset.kit);setKits(+$("#kq").value);render()}));
+$("#kq").addEventListener("change",()=>{$("#kq").value=clamp($("#kq").value);setKits(+$("#kq").value);render()});
+$("#setkit").addEventListener("click",()=>{setKits(clamp($("#kq").value));render()});
+$("#zero").addEventListener("click",()=>{setKits(0);render()});
+
+function render(keep){
+  const kits=clamp($("#kq").value);
+  // карточки изделий
+  for(const el of document.querySelectorAll(".prod")){const p=PRODS.find(x=>x.k===el.dataset.p),q=Q[p.k]||0,inp=el.querySelector("input");
+    if(inp!==keep)inp.value=q;el.classList.toggle("zero",!q);
+    const diff=q-p.kit*kits,tag=el.querySelector(".tag");
+    tag.hidden=!diff;tag.textContent=diff>0?"+"+diff+" сверх "+(kits===1?"комплекта":kits+" компл."):diff+" до "+(kits===1?"комплекта":kits+" компл.")}
+  // суммы
+  const dd=Object.fromEntries(DIAS.map(d=>[d,0])),mp={},all=new Map();
+  let R=0,M=0;
+  for(const i of ITEMS){let n=0;for(const [p,c] of Object.entries(i.per))n+=c*(Q[p]||0);if(!n)continue;
+    for(const [d,c,L,nb] of (i.bars||[])){const kg=KGM[d+" "+c]*L/1000*nb*n;dd[d+" "+c]+=kg;R+=kg}
+    const m=metal1(i)*n;M+=m;const pr=metalProf(i);if(pr)mp[pr]=(mp[pr]||0)+m;
+    all.set(i,n)}
+  const nP=PRODS.filter(p=>p.k!=="МОН").reduce((a,p)=>a+(Q[p.k]||0),0);
+  $("#tR").textContent=$("#sR").textContent=fmt(R);$("#tM").textContent=$("#sM").textContent=fmt(M);$("#tP").textContent=nP;
+  $("#tPs").textContent="шт"+((Q["МОН"]||0)?" + монтаж ×"+Q["МОН"]:"");
+  $("#selsum").textContent=PRODS.filter(p=>Q[p.k]).map(p=>p.s+" "+Q[p.k]).join(" · ")||"ничего не выбрано";
+  $("#dia").innerHTML=DIAS.filter(d=>dd[d]>0.0001).map(d=>`<tr><td>Ø${esc(d)}</td><td class="n num">${fmt(dd[d])}</td></tr>`).join("")+`<tr class="t"><td>Итого</td><td class="n num">${fmt(R)}</td></tr>`;
+  $("#met").innerHTML=Object.entries(mp).filter(([,v])=>v>0).map(([p,v])=>`<tr><td>${esc(p)}<small>${esc(PROFUSE[p])}</small></td><td class="n num">${fmt(v)}</td></tr>`).join("")+`<tr class="t"><td>Итого</td><td class="n num">${fmt(M)}</td></tr>`;
+  let h="";for(const g of GROUPS){const rows=ITEMS.filter(i=>i.g===g.id&&all.has(i));if(!rows.length)continue;
+    h+=`<tr class="g"><td colspan="3">${esc(g.name)}</td></tr>`+rows.map(i=>{const n=all.get(i);return `<tr><td>${esc(i.n)}</td><td class="q">${n}</td><td class="n num">${fmt((g.id==="dn"?metal1(i):rebar1(i))*n)}</td></tr>`}).join("")}
+  $("#all").innerHTML=h||`<tr><td colspan="3" class="empty">Ничего не выбрано</td></tr>`;
+  // спецификации изделий
+  $("#specs").innerHTML=PRODS.map(p=>{const q=Q[p.k]||0;
+    const its=ITEMS.filter(i=>i.per[p.k]);let r1=0,m1=0;
+    let rows="";for(const g of GROUPS){const gi=its.filter(i=>i.g===g.id);if(!gi.length)continue;
+      rows+=`<tr class="g"><td colspan="4">${esc(g.name)}</td></tr>`+gi.map(i=>{const n=i.per[p.k],one=g.id==="dn"?metal1(i):rebar1(i);
+        r1+=rebar1(i)*n;m1+=metal1(i)*n;
+        return `<tr><td>${esc(i.n)}${i.note?`<small>${esc(i.note)}</small>`:""}</td><td class="n num">${n}</td><td class="q">${n*q}</td><td class="n num">${fmt(one*n*q)}</td></tr>`}).join("")}
+    return `<article class="panel spec" id="sp-${p.k}">
+      <div class="ph"><span><b>${esc(p.s)}</b> — ${esc(p.n)}</span><span><span class="num" style="font-weight:700">× ${q} шт</span> ${PDW[p.k]?`<button type="button" class="mini" data-f="${PDW[p.k]}" data-l="${esc(p.n)}">Чертёж</button>`:""}</span></div>
+      <div class="meta"><span>На 1 шт: арматура <b class="num">${fmt(r1)} кг</b>, металл <b class="num">${fmt(m1)} кг</b></span>${q>1?`<span>На ${q} шт: арматура <b class="num">${fmt(r1*q)} кг</b>, металл <b class="num">${fmt(m1*q)} кг</b></span>`:""}</div>
+      <table><thead><tr><th>Марка</th><th class="n">на 1</th><th class="n">всего</th><th class="n">кг</th></tr></thead><tbody>${rows}</tbody></table>
+    </article>`}).join("");
+  save();
+}
+// чертежи
+const vw=$("#viewer");
+document.addEventListener("click",e=>{const b=e.target.closest("button[data-f]");if(!b)return;const f=b.dataset.f,n=PAGES[f]||1;
+  $("#vtitle").textContent=b.dataset.l;$("#vbody").innerHTML=Array.from({length:n},(_,j)=>`<img src="img/${f}-${j+1}.jpg" alt="${esc(b.dataset.l)}, лист ${j+1}" loading="lazy">`).join("");
+  vw.hidden=false;vw.classList.remove("zoom");document.body.style.overflow="hidden";$("#vclose").focus()});
+$("#vclose").addEventListener("click",()=>{vw.hidden=true;document.body.style.overflow="";$("#vbody").innerHTML=""});
+$("#vzoom").addEventListener("click",()=>vw.classList.toggle("zoom"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!vw.hidden)$("#vclose").click()});
+$("#notes").innerHTML=ITEMS.filter(i=>i.swap).map(i=>`<li><b>${esc(i.n)}:</b> ${esc(i.swap)}</li>`).join("")+ASSUME.slice(1).map(([a,b])=>`<li><b>${esc(a)}:</b> ${esc(b)}</li>`).join("");
+prodRows();load();render();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).catch(()=>{});
+</script>
+</body>
+</html>
