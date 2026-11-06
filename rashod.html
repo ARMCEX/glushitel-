@@ -86,19 +86,18 @@ details[open]>summary::before{content:"▾ "}
 .notes{margin:0;padding:8px 12px 10px 28px;font-size:13.5px}
 .notes li{margin:3px 0}
 .empty{padding:14px 12px;color:var(--muted)}
-.viewer{position:fixed;inset:0;background:var(--bg);z-index:9;display:flex;flex-direction:column}
-.viewer[hidden]{display:none}
-.vbar{display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
-.vbar b{flex:1}
-.vbody{overflow:auto;flex:1;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
-.vbody img{max-width:100%;height:auto;background:#fff;border:1px solid var(--line)}
-.viewer.zoom .vbody img{max-width:none;width:220%}
-.sticky{position:sticky;top:0;z-index:3}
+.step.sm button{width:34px;min-height:34px;font-size:19px}
+.step.sm input{width:38px;font-size:16px}
+.spec td{vertical-align:middle}
+.spec td.nm{font-size:14.5px;word-break:break-word}
+tr.x td{background:var(--hi)}
+tr.x td.tt{color:var(--hi-ink)}
+.xcnt{color:var(--hi-ink);font-weight:700}
 </style>
 <body>
 <div class="wrap">
 <header>
-  <div class="kick"><span>Арматурный цех · Глушитель ПР-6-2026</span><a href="./">← Учёт по сменам</a></div>
+  <div class="kick"><span>Арматурный цех · Глушитель ПР-6-2026</span></div>
   <h1>Расход арматуры по сделанным изделиям</h1>
   <p class="sub" id="rev"></p>
 </header>
@@ -134,6 +133,7 @@ details[open]>summary::before{content:"▾ "}
 
 <section style="display:flex;flex-direction:column;gap:14px">
   <h2 style="padding:0 2px">3. Спецификация каждого изделия</h2>
+  <p class="sub" style="padding:0 2px">Если к изделию сделали что-то сверх чертежа (например, ещё КП-4 к блоку), поставьте количество в колонке «Сверху». Минус — если сделали меньше нормы. Всё сразу попадает в итог сверху.</p>
   <div id="specs" style="display:flex;flex-direction:column;gap:14px"></div>
 </section>
 
@@ -143,10 +143,6 @@ details[open]>summary::before{content:"▾ "}
 </section>
 </div>
 
-<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-labelledby="vtitle">
-  <div class="vbar"><b id="vtitle">Чертёж</b><button type="button" class="mini" id="vzoom">Крупнее / мельче</button><button type="button" class="btn" id="vclose">Закрыть</button></div>
-  <div class="vbody" id="vbody"></div>
-</div>
 
 <script src="norma.js"></script>
 <script>
@@ -156,15 +152,15 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const DIAS=Object.keys(KGM);
 const rebar1=i=>(i.bars||[]).reduce((a,[d,c,L,n])=>a+KGM[d+" "+c]*L/1000*n,0);
 const metal1=i=>i.metal||(i.plate?i.plate[0]*i.plate[1]*i.plate[2]*STEEL:0);
-// чертёж изделия (первый лист с его кодом)
-const PDW={"6А":"bg-1a","6Б":"bg-1b","ПНГ":"png-1","ПВТ1":"pvt-1","ПВТ3":"pvt-3","ПВТ2":"pvt-2","ПЛ":"pl-34-35-14-1","МОН":"montazh"};
 $("#rev").textContent="Нормы: Глушитель 4.0, КЖИ ред. 3 от 03.11.2026. Комплект: "+PRODS.filter(p=>p.k!=="МОН").map(p=>p.s+(p.kit>1?" ×"+p.kit:"")).join(", ")+". Масса теоретическая, без отходов.";
 
 const KEY="glush_rashod_v1";
-let Q={};
-function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||"null");if(o&&typeof o==="object"){Q=o.q||{};$("#kq").value=o.kits??1;return}}catch(e){}
+let Q={},X={}; // Q — шт изделий; X[изделие][позиция] — сделали сверху (+) или меньше (−) нормы
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY)||"null");if(o&&typeof o==="object"){Q=o.q||{};X=o.x||{};$("#kq").value=o.kits??1;return}}catch(e){}
   setKits(1)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({q:Q,kits:+$("#kq").value||0}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({q:Q,x:X,kits:+$("#kq").value||0}))}catch(e){}}
+const xget=(p,k)=>(X[p]&&X[p][k])||0;
+function xset(p,k,v){const i=ITEMS.find(t=>t.k===k),nrm=i.per[p]*(Q[p]||0);v=Math.round(+v)||0;v=Math.max(-nrm,Math.min(999,v));X[p]=X[p]||{};if(v)X[p][k]=v;else delete X[p][k]}
 function setKits(n){for(const p of PRODS)Q[p.k]=p.kit*n}
 function clamp(v){v=Math.round(+v);return isFinite(v)&&v>0?Math.min(v,999):0}
 
@@ -180,7 +176,7 @@ $("#prods").addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")e.targe
 document.querySelectorAll("[data-kit]").forEach(b=>b.addEventListener("click",()=>{$("#kq").value=clamp((+$("#kq").value||0)+ +b.dataset.kit);setKits(+$("#kq").value);render()}));
 $("#kq").addEventListener("change",()=>{$("#kq").value=clamp($("#kq").value);setKits(+$("#kq").value);render()});
 $("#setkit").addEventListener("click",()=>{setKits(clamp($("#kq").value));render()});
-$("#zero").addEventListener("click",()=>{setKits(0);render()});
+$("#zero").addEventListener("click",()=>{setKits(0);X={};render()});
 
 function render(keep){
   const kits=clamp($("#kq").value);
@@ -192,7 +188,7 @@ function render(keep){
   // суммы
   const dd=Object.fromEntries(DIAS.map(d=>[d,0])),mp={},all=new Map();
   let R=0,M=0;
-  for(const i of ITEMS){let n=0;for(const [p,c] of Object.entries(i.per))n+=c*(Q[p]||0);if(!n)continue;
+  for(const i of ITEMS){let n=0;for(const [p,c] of Object.entries(i.per))n+=Math.max(0,c*(Q[p]||0)+xget(p,i.k));if(!n)continue;
     for(const [d,c,L,nb] of (i.bars||[])){const kg=KGM[d+" "+c]*L/1000*nb*n;dd[d+" "+c]+=kg;R+=kg}
     const m=metal1(i)*n;M+=m;const pr=metalProf(i);if(pr)mp[pr]=(mp[pr]||0)+m;
     all.set(i,n)}
@@ -205,31 +201,39 @@ function render(keep){
   let h="";for(const g of GROUPS){const rows=ITEMS.filter(i=>i.g===g.id&&all.has(i));if(!rows.length)continue;
     h+=`<tr class="g"><td colspan="3">${esc(g.name)}</td></tr>`+rows.map(i=>{const n=all.get(i);return `<tr><td>${esc(i.n)}</td><td class="q">${n}</td><td class="n num">${fmt((g.id==="dn"?metal1(i):rebar1(i))*n)}</td></tr>`}).join("")}
   $("#all").innerHTML=h||`<tr><td colspan="3" class="empty">Ничего не выбрано</td></tr>`;
-  // спецификации изделий
-  $("#specs").innerHTML=PRODS.map(p=>{const q=Q[p.k]||0;
-    const its=ITEMS.filter(i=>i.per[p.k]);let r1=0,m1=0;
-    let rows="";for(const g of GROUPS){const gi=its.filter(i=>i.g===g.id);if(!gi.length)continue;
-      rows+=`<tr class="g"><td colspan="4">${esc(g.name)}</td></tr>`+gi.map(i=>{const n=i.per[p.k],one=g.id==="dn"?metal1(i):rebar1(i);
-        r1+=rebar1(i)*n;m1+=metal1(i)*n;
-        return `<tr><td>${esc(i.n)}${i.note?`<small>${esc(i.note)}</small>`:""}</td><td class="n num">${n}</td><td class="q">${n*q}</td><td class="n num">${fmt(one*n*q)}</td></tr>`}).join("")}
-    return `<article class="panel spec" id="sp-${p.k}">
-      <div class="ph"><span><b>${esc(p.s)}</b> — ${esc(p.n)}</span><span><span class="num" style="font-weight:700">× ${q} шт</span> ${PDW[p.k]?`<button type="button" class="mini" data-f="${PDW[p.k]}" data-l="${esc(p.n)}">Чертёж</button>`:""}</span></div>
-      <div class="meta"><span>На 1 шт: арматура <b class="num">${fmt(r1)} кг</b>, металл <b class="num">${fmt(m1)} кг</b></span>${q>1?`<span>На ${q} шт: арматура <b class="num">${fmt(r1*q)} кг</b>, металл <b class="num">${fmt(m1*q)} кг</b></span>`:""}</div>
-      <table><thead><tr><th>Марка</th><th class="n">на 1</th><th class="n">всего</th><th class="n">кг</th></tr></thead><tbody>${rows}</tbody></table>
-    </article>`}).join("");
+  // спецификации изделий (строятся один раз, тут только цифры)
+  for(const p of PRODS){const q=Q[p.k]||0,art=$("#sp-"+p.k);let r=0,m=0,xc=0;
+    for(const tr of art.querySelectorAll("tr[data-i]")){const i=BYK[tr.dataset.i],n=i.per[p.k],x=xget(p.k,i.k),t=Math.max(0,n*q+x);
+      r+=rebar1(i)*t;m+=metal1(i)*t;if(x)xc++;
+      tr.classList.toggle("x",!!x);tr.querySelector(".nr").textContent=n*q;
+      const inp=tr.querySelector("input");if(inp!==keep)inp.value=x>0?"+"+x:x;
+      tr.querySelector(".tt").textContent=t;tr.querySelector(".kg").textContent=fmt((i.g==="dn"?metal1(i):rebar1(i))*t)}
+    art.querySelector(".hq").textContent="× "+q+" шт";
+    art.querySelector(".mt").innerHTML=`Всего на ${q} шт${xc?` <span class="xcnt">(с изменениями: ${xc} поз.)</span>`:""}: арматура <b class="num">${fmt(r)} кг</b>, металл <b class="num">${fmt(m)} кг</b>`}
   save();
 }
-// чертежи
-const vw=$("#viewer");
-document.addEventListener("click",e=>{const b=e.target.closest("button[data-f]");if(!b)return;const f=b.dataset.f,n=PAGES[f]||1;
-  $("#vtitle").textContent=b.dataset.l;$("#vbody").innerHTML=Array.from({length:n},(_,j)=>`<img src="img/${f}-${j+1}.jpg" alt="${esc(b.dataset.l)}, лист ${j+1}" loading="lazy">`).join("");
-  vw.hidden=false;vw.classList.remove("zoom");document.body.style.overflow="hidden";$("#vclose").focus()});
-$("#vclose").addEventListener("click",()=>{vw.hidden=true;document.body.style.overflow="";$("#vbody").innerHTML=""});
-$("#vzoom").addEventListener("click",()=>vw.classList.toggle("zoom"));
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!vw.hidden)$("#vclose").click()});
 $("#notes").innerHTML=ITEMS.filter(i=>i.swap).map(i=>`<li><b>${esc(i.n)}:</b> ${esc(i.swap)}</li>`).join("")+ASSUME.slice(1).map(([a,b])=>`<li><b>${esc(a)}:</b> ${esc(b)}</li>`).join("");
-prodRows();load();render();
-if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).catch(()=>{});
+const BYK=Object.fromEntries(ITEMS.map(i=>[i.k,i]));
+function specRows(){
+  $("#specs").innerHTML=PRODS.map(p=>{const its=ITEMS.filter(i=>i.per[p.k]);let r1=0,m1=0,rows="";
+    for(const g of GROUPS){const gi=its.filter(i=>i.g===g.id);if(!gi.length)continue;
+      rows+=`<tr class="g"><td colspan="4">${esc(g.name)}</td></tr>`+gi.map(i=>{const n=i.per[p.k];r1+=rebar1(i)*n;m1+=metal1(i)*n;
+        return `<tr data-i="${i.k}"><td class="nm">${esc(i.n)}<small>норма <span class="nr num"></span></small></td>
+          <td><span class="step sm"><button type="button" data-x="-1" aria-label="меньше ${esc(i.n)}">−</button><input class="num" inputmode="numeric" aria-label="${esc(i.n)}, сверху"><button type="button" data-x="1" aria-label="больше ${esc(i.n)}">+</button></span></td>
+          <td class="q tt"></td><td class="n num kg"></td></tr>`}).join("")}
+    return `<article class="panel spec" id="sp-${p.k}" data-p="${p.k}">
+      <div class="ph"><span><b>${esc(p.s)}</b> — ${esc(p.n)}</span><span class="num hq" style="font-weight:700"></span></div>
+      <div class="meta"><span>На 1 шт по чертежу: арматура <b class="num">${fmt(r1)} кг</b>, металл <b class="num">${fmt(m1)} кг</b></span><span class="mt"></span></div>
+      <table><thead><tr><th>Марка</th><th>Сверху</th><th class="n">Всего</th><th class="n">кг</th></tr></thead><tbody>${rows}</tbody></table>
+    </article>`}).join("");
+}
+$("#specs").addEventListener("click",e=>{const b=e.target.closest("button[data-x]");if(!b)return;const tr=b.closest("tr"),p=b.closest("article").dataset.p;
+  xset(p,tr.dataset.i,xget(p,tr.dataset.i)+ +b.dataset.x);render()});
+$("#specs").addEventListener("input",e=>{const inp=e.target.closest("input");if(!inp)return;const tr=inp.closest("tr"),p=inp.closest("article").dataset.p;
+  const v=inp.value.replace(/[^\d-]/g,"");if(v===""||v==="-")return;xset(p,tr.dataset.i,parseInt(v,10));render(inp)});
+$("#specs").addEventListener("change",()=>render());
+$("#specs").addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")e.target.select()});
+prodRows();specRows();load();render();
 </script>
 </body>
 </html>
