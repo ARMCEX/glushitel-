@@ -34,6 +34,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .doc .kick{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 h1{font-size:22px;margin:2px 0 0;text-wrap:balance}
 h2{font-size:15px;margin:0;text-transform:uppercase;letter-spacing:.05em}
+.rlink{color:var(--accent);font-weight:700}
 .req{font-size:13px;color:var(--muted);text-align:right;line-height:1.6}
 .sub{color:var(--muted);margin:0;max-width:80ch;grid-column:1/-1}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
@@ -133,6 +134,32 @@ details.expl[open] summary{margin-bottom:4px}
 #vpdf{display:none}
 .offbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
 .offbar input[type=text]{font:inherit;background:var(--inp);color:var(--ink);border:1px solid var(--line);padding:6px 8px;min-width:180px}
+[hidden]{display:none!important}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--swap);background:var(--swap-bg);padding:2px 4px 2px 7px;font-size:13px;white-space:nowrap}
+.chip input[type=number]{width:52px;padding:2px 5px}
+.xdel{font:inherit;font-weight:700;border:0;background:none;color:var(--warn);cursor:pointer;padding:0 4px;font-size:16px;line-height:1}
+select.xadd{font:inherit;font-size:13px;background:var(--inp);color:var(--ink);border:1px solid var(--line);padding:4px 6px;max-width:240px}
+#prods input[data-pl]{width:70px;font-size:16px}
+#prods tr.pr.on td.inp{background:var(--soft-ok)}
+#prods td.c-pn{min-width:170px}
+#kitn{width:56px}
+.tag.xtra{color:var(--swap)}
+#items tr.it.zero{opacity:.6}
+.tile b.pl{font-size:16px;line-height:1.3;font-family:var(--f-body)}
+@media (max-width:760px){
+  #prods thead{display:none}
+  #prods,#prods tbody{display:block}
+  #prods tr.pr{display:grid;grid-template-columns:minmax(0,1fr) auto auto;border:1px solid var(--line);border-top:0;background:var(--panel);align-items:end}
+  #prods tr.pr td{border:0;border-top:1px solid var(--line);display:block}
+  #prods td.c-x{grid-column:1/-1}
+  #prods td.c-kit{display:none!important}
+  #prods td.c-x::before{display:none!important}
+  #prods td.c-x{padding-top:4px}
+  #prods tr.pr td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--muted)}
+  select.xadd{width:100%;max-width:100%;min-width:0}
+  #prods td.c-pn{min-width:0}
+}
 </style>
 <div class="wrap">
   <header class="doc">
@@ -140,16 +167,14 @@ details.expl[open] summary{margin-bottom:4px}
       <div class="kick">Арматурный цех · ведомость учёта</div>
       <h1>Глушитель ПР-6-2026: изготовление арматурных изделий по сменам</h1>
     </div>
-    <div class="req">КЖИ от 26.10.2026<br>План: днём 2 компл., ночью 1 компл.</div>
-    <p class="sub">Комплект: БГ-35.35.30-6А, БГ-35.35.30-6Б, ПН.Г-1 ×2, ПВТ-1 ×2, ПВТ-2, ПЛ-35.35.14-1. Смена отмечает, какие изделия изготовила сама, а какие взяла готовыми со склада. Расход арматуры считается только по изготовленному.</p>
+    <div class="req">Глушитель 4.0 · КЖИ ред. 3 от 03.11.2026<br>Комплект: 1А, 1Б, ПН.Г-1 ×2, ПВТ-1, ПВТ-3, ПВТ-2, ПЛ<br><a class="rlink" href="rashod.html">Расход по изделиям →</a></div>
+    <p class="sub">Сначала укажите, сколько блоков, панелей и плит делает смена (раздел 1). Если к какому-то блоку или панели нужны изделия сверх чертежа, добавьте их в его строке. Норма изделий и расход арматуры считаются из этого. Все изделия к ним считаются сделанными автоматически, и расход арматуры появляется сразу. Отметьте только то, что взяли готовым со склада или сделали не по норме.</p>
   </header>
 
   <section class="bar" aria-label="Дата и смена">
     <label class="fld" for="date"><span>Дата</span><input type="date" id="date"></label>
     <div class="fld"><span>Смена</span><div style="display:flex;gap:8px;flex-wrap:wrap"><div class="seg" id="parts" role="group" aria-label="Смена"></div><button type="button" class="mini big danger" id="reset" disabled>Сбросить всё</button></div></div>
     <div class="fld"><span>Бригада</span><div class="seg" id="brigs" role="group" aria-label="Бригада"></div></div>
-    <label class="fld" for="planD"><span>План днём, компл.</span><input type="number" id="planD" min="0" max="20" value="2"></label>
-    <label class="fld" for="planN"><span>План ночью, компл.</span><input type="number" id="planN" min="0" max="20" value="1"></label>
     <div class="fld" style="margin-left:auto;align-items:flex-end">
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="mini big" id="pdfS" type="button">PDF: отчёт смены</button><button class="mini big" id="pdfD" type="button">PDF: отчёт за сутки</button><button class="btn" id="save" type="button" disabled>Сохранить смену</button></div>
       <span class="status" id="status">Загрузка…</span>
@@ -157,28 +182,35 @@ details.expl[open] summary{margin-bottom:4px}
     </div>
   </section>
 
+  <section class="card">
+    <h2>1. Что делает смена: блоки, панели, плиты</h2>
+    <div class="allbar" id="kitbar"><b id="kitlbl">План смены:</b><label>по комплектам <input type="number" id="kitn" min="0" max="20" value="1" aria-label="Комплектов"></label><button type="button" class="mini big" id="kitfill">Заполнить</button><button type="button" class="mini big" id="kitclear">Обнулить</button><span class="status">или впишите количество каждого изделия в таблице</span></div>
+    <div class="scroll"><table id="prods"></table></div>
+  </section>
+
   <section class="tiles" id="tiles" aria-label="Итоги за сутки"></section>
 
   <section class="card">
-    <h2>1. Расход за сутки: арматура по диаметрам и металлопрокат</h2>
+    <h2>2. Расход за сутки: арматура по диаметрам и металлопрокат</h2>
     <div class="scroll"><table id="diam"></table></div>
     <div class="log" id="log"></div>
   </section>
 
   <section class="card">
-    <h2>2. Ведомость изделий</h2>
-    <p class="sub">«Норма смены» — количество на план вашей смены, «норма суток» — на все комплекты суток. Отметьте галочкой «Сделали» или «Склад»: количество подставится по норме смены. Если сделали больше или меньше, исправьте число рядом. Кнопки «Всё сделали» и «Всё со склада» отмечают сразу все изделия смены, кнопки в строке раздела — только этот раздел. Нажатая кнопка подсвечивается. Ночная смена отмечается на дату начала смены. Кнопка с маркой в колонке «Чертёж» открывает чертёж.</p>
-    <div class="allbar" id="allbar"><b>Все изделия смены:</b><button type="button" class="mini big" data-all="made" disabled>Всё сделали</button><button type="button" class="mini big" data-all="stock" disabled>Всё со склада</button><button type="button" class="mini big" data-all="clear" disabled>Снять всё</button><span class="status" id="allcnt"></span></div>
+    <h2>3. Ведомость изделий</h2>
+    <p class="sub">«Норма смены» посчитана из раздела 1: сколько блоков, панелей и плит делает смена, плюс добавленные к ним изделия. Всё по норме считается сделанным само («авто»). Если что-то взяли со склада, отметьте «Склад», и «Сделали» уменьшится на это число. Если сделали больше или меньше, впишите число в «Сделали». Снятая галочка «Сделали» означает, что изделие не делали. Изделия, которые сегодня не нужны, скрыты. Ночная смена отмечается на дату начала смены. Кнопка с маркой в колонке «Чертёж» открывает чертёж.</p>
+    <div class="allbar" id="allbar"><b>Все изделия смены:</b><button type="button" class="mini big" data-all="made" disabled>Всё сделали</button><button type="button" class="mini big" data-all="stock" disabled>Всё со склада</button><button type="button" class="mini big" data-all="clear" disabled>Ничего не сделали</button><span class="status" id="allcnt"></span><button type="button" class="mini" id="showall"></button></div>
     <div class="scroll"><table id="items"></table></div>
   </section>
 
   <section class="card">
-    <h2>3. Замены и расчёты по прикидке</h2>
+    <h2>4. Замены и допущения</h2>
     <ul class="notes" id="notes"></ul>
   </section>
 
   <section class="card">
-    <h2>4. Чертежи изделий и сборок</h2>
+    <h2>5. Чертежи изделий и сборок</h2>
+    <p class="sub">Чертежи здесь из прошлой редакции (26.10). Для изделий, которые в 4.0 изменились, старый чертёж не показываем, в строке написано «чертёж 4.0 не загружен».</p>
     <div class="files" id="files"></div>
   </section>
 </div>
@@ -186,6 +218,7 @@ details.expl[open] summary{margin-bottom:4px}
   <div class="vbar"><b id="vtitle">Чертёж</b><span class="vsp"></span><button type="button" class="mini" id="vzoom">Крупнее / мельче</button><a class="mini" id="vpdf" href="#" target="_blank" rel="noopener">PDF</a><button type="button" class="btn" id="vclose">Закрыть</button></div>
   <div class="vbody" id="vbody"></div>
 </div>
+<script src="norma.js"></script>
 <script>
 // ---------- офлайн: данные смен хранятся в этом браузере (localStorage)
 const OFF=(()=>{
@@ -216,70 +249,6 @@ const OFF=(()=>{
   return {all};
 })();
 
-const KGM={"5 Вр-1":0.154,"6 A500C":0.222,"8 A500C":0.395,"10 A500C":0.617,"12 A240":0.888,"18 A500C":1.998,"20 A240":2.466,"28 A240":4.834};
-const STEEL=7850e-9; // кг/мм³
-// металл — отдельными позициями расхода, как в 1С: лист Д×Ш×толщина, уголок
-function metalProf(i){return i.prof||(i.plate?"Лист "+i.plate[1]+"×"+i.plate[2]+"×"+i.plate[0]+" мм":null)}
-const GROUPS=[
- {id:"set",name:"Сетки",where:"правилка + сварка"},
- {id:"kar",name:"Каркасы",where:"правилка + сварка"},
- {id:"rod",name:"Отдельные стержни (рассыпью в форму)",where:"правилка"},
- {id:"sga",name:"Фиксаторы и хомуты",where:"СГА"},
- {id:"pet",name:"Петли",where:"рубочный станок + гибка"},
- {id:"zd",name:"Закладные детали",where:"рубка, гибка, сварка"},
- {id:"dn",name:"Накладные детали DN (металл)",where:"резка листа и уголка"}
-];
-// kit = шт на 1 комплект; bars = [Ø, класс, L мм, шт] на 1 шт (только свои стержни, без вложенных изделий)
-const ITEMS=[
- {k:"s3440-2930-5",dw:[["С-3440-2930-5-1", "s3440-2930-5-1"], ["005.С-…-5-1 (6А)", "005-s3440-2930-5-1"], ["005.С-…-5-2 (6Б)", "005-s3440-2930-5-2"]],g:"set",n:"С-3440-2930-5 (все варианты -5-1 / 005.-5-1 / 005.-5-2)",kit:12,bars:[["5","Вр-1",3440,15],["5","Вр-1",2930,18]],where:"6А 6, 6Б 6",note:"Варим целыми; 2 шт маркируем 005.-5-1 (6А), 2 шт 005.-5-2 (6Б)"},
- {k:"s3440-3440-8",dw:[["С-3440-3440-8", "s3440-3440-8"]],g:"set",n:"С-3440-3440-8",kit:4,bars:[["8","A500C",3440,36]],where:"6А 1, 6Б 1, ПЛ 2"},
- {k:"s3440-3440-6",sh:"чертежа нет, состав подобран по массе 27,49 кг",dw:[["спецификация БГ-6А", "bg-6a"]],g:"set",n:"С-3440-3440-6",kit:2,bars:[["6","A500C",3440,36]],where:"6А 1, 6Б 1",est:"Чертежа сетки в архиве нет, есть только строка в спецификации блоков: 1 шт, 27,49 кг. Раскладку взяли как у С-3440-3440-8 (чертёж есть): 36 стержней по 3440 мм, шаг 200 в обе стороны, только Ø6 A500C. Проверка: 36 × 3,44 м × 0,222 кг/м = 27,49 кг, точно как в спецификации."},
- {k:"sg1",dw:[["003.СГ-1", "sg-1"]],g:"set",n:"СГ-1 (002/003.СГ-1), гнутая Г 790+500",kit:4,bars:[["5","Вр-1",3440,7],["5","Вр-1",1290,17]],where:"6А 2, 6Б 2"},
- {k:"sg2",dw:[["СГ-2", "sg-2"]],g:"set",n:"СГ-2, гнутая Г 790+500",kit:2,bars:[["5","Вр-1",1860,7],["5","Вр-1",1290,9]],where:"6А 1, 6Б 1"},
- {k:"s2750-3200-1",dw:[["005.С-2750-3200-1", "s2750-3200-1"]],g:"set",n:"005.С-2750-3200-1",kit:2,bars:[["5","Вр-1",3200,14],["5","Вр-1",2750,16]],where:"ПВТ-1 ×2",note:"Варим целой, проём по месту"},
- {k:"s2750-3200-2",dw:[["005.С-2750-3200-2", "s2750-3200-2"]],g:"set",n:"005.С-2750-3200-2",kit:1,bars:[["6","A500C",2750,10],["6","A500C",3200,10]],where:"ПВТ-2",note:"Шаг неравный, строго по чертежу"},
- {k:"spg",dw:[["СП.Г-3200-2770-5-1", "spg-3200-2770-5-1"]],g:"set",n:"СП.Г-3200-2770-5-1",kit:2,bars:[["5","Вр-1",3200,14],["5","Вр-1",2770,16]],where:"ПН.Г-1 ×2"},
- {k:"s800",dw:[["С-800-800-6-1", "s800-800-6-1"]],g:"set",n:"С-800-800-6-1",kit:4,bars:[["6","A500C",800,8]],where:"ПЛ 4"},
-
- {k:"ka2930",dw:[["КА-2930-60-52-8.1", "ka-2930-60-52-8-1"]],g:"kar",n:"КА-2930-60-52-8.1",kit:22,bars:[["8","A500C",2930,3],["5","Вр-1",200,13]],where:"6А 11, 6Б 11"},
- {k:"k3440-70",dw:[["К-3440-70-8", "k-3440-70-8"]],g:"kar",n:"К-3440-70-8",kit:6,bars:[["8","A500C",3440,2],["5","Вр-1",70,17]],where:"6А 3, 6Б 3"},
- {k:"kg-a",dw:[["КГ-2930-250-8-А/В", "kg-2930-250-8-a-v"]],g:"kar",n:"КГ-2930-250-8-А",kit:4,bars:[["8","A500C",2930,5],["5","Вр-1",500,15]],where:"6А 2, 6Б 2"},
- {k:"kg-v",dw:[["КГ-2930-250-8-А/В", "kg-2930-250-8-a-v"]],g:"kar",n:"КГ-2930-250-8-В",kit:4,bars:[["8","A500C",2930,5],["5","Вр-1",500,15]],where:"6А 2, 6Б 2",note:"На чертеже подписан «КГ-2930-100-8-В», считаем опечаткой (размеры 250×250)"},
- {k:"kp4",dw:[["КП-4", "kp-4"]],g:"kar",n:"КП-4",kit:8,bars:[["18","A500C",2650,2],["28","A240",1440,1],["10","A500C",190,3]],where:"6А 4, 6Б 4",note:"Ø18 и петля Ø28 режутся на рубочном станке"},
- {k:"pkp1",dw:[["003.ПКП-1", "pkp-1"]],g:"kar",n:"005/003.ПКП-1",kit:6,bars:[["10","A500C",3440,6],["5","Вр-1",340,34],["5","Вр-1",112,51]],where:"6А 3, 6Б 3"},
- {k:"k3440-265",dw:[["К-3440-265-10", "k-3440-265-10"]],g:"kar",n:"К-3440-265-10",kit:4,bars:[["10","A500C",3440,2],["6","A500C",265,17]],where:"идёт в К-8 (только 6А)"},
- {k:"k8",dw:[["К-8", "k-8"]],g:"kar",n:"К-8 (из 2 шт К-3440-265-10)",kit:2,bars:[["6","A500C",60,34]],where:"6А 2",note:"Здесь только распорки Ø6. Сами каркасы К-3440-265-10 считаются строкой выше"},
- {k:"ka3440-86",sh:"по проекту КА-3440-100-75-8 → ставим КА-3440-100-86-8 со склада",dw:[["КА-3440-100-86-8", "ka-3440-100-86-8"], ["ПЛ-35.35.14-1", "pl-35-35-14-1"]],g:"kar",n:"КА-3440-100-86-8",kit:4,bars:[["8","A500C",3440,3],["5","Вр-1",240,18]],where:"ПЛ 4",swap:"По спецификации ПЛ-35.35.14-1 стоит каркас КА-3440-100-75-8: 4 шт по 4,65 кг. Чертежа на него нет, на складе нет, пришлось бы варить. Ставим КА-3440-100-86-8 (чертёж ПР-8-2025-КЖИ): Ø8 A500C 3440 × 3 + Ø5 Вр-1 240 × 18, 4,62 кг. Длина, ширина 100, диаметры и шаг те же, отличается только высота: 86 мм вместо 75. Берём готовые со склада."},
-
- {k:"r10-3440",dw:[["БГ-6А", "bg-6a"], ["БГ-6Б", "bg-6b"]],g:"rod",n:"Ø10 A500C L=3440",kit:12,bars:[["10","A500C",3440,1]],where:"6А 8, 6Б 4"},
- {k:"r8-3200",dw:[["ПВТ-1", "pvt-1"], ["ПВТ-2", "pvt-2"], ["ПН.Г-1", "png-1"]],g:"rod",n:"Ø8 A500C L=3200",kit:10,bars:[["8","A500C",3200,1]],where:"ПВТ-1 2×2, ПВТ-2 2, ПН.Г-1 2×2"},
- {k:"r8-2770",dw:[["ПН.Г-1", "png-1"]],g:"rod",n:"Ø8 A500C L=2770",kit:8,bars:[["8","A500C",2770,1]],where:"ПН.Г-1 2×4"},
- {k:"r8-2750",dw:[["ПВТ-1", "pvt-1"], ["ПВТ-2", "pvt-2"]],g:"rod",n:"Ø8 A500C L=2750",kit:6,bars:[["8","A500C",2750,1]],where:"ПВТ-1 2×2, ПВТ-2 2"},
- {k:"r8-1800",dw:[["ПВТ-1", "pvt-1"]],g:"rod",n:"Ø8 A500C L=1800",kit:2,bars:[["8","A500C",1800,1]],where:"ПВТ-1 2×1"},
- {k:"r8-1350",dw:[["ПВТ-1", "pvt-1"]],g:"rod",n:"Ø8 A500C L=1350",kit:2,bars:[["8","A500C",1350,1]],where:"ПВТ-1 2×1"},
- {k:"r8-1080",dw:[["БГ-6Б", "bg-6b"]],g:"rod",n:"Ø8 A500C L=1080",kit:4,bars:[["8","A500C",1080,1]],where:"6Б 4"},
-
- {k:"g500",dw:[["Г-500-500-8", "g-500-500-8"]],g:"sga",n:"Фиксатор Г-500-500-8",kit:240,bars:[["8","A500C",1000,1]],where:"6А 120, 6Б 120"},
- {k:"p350",dw:[["П-350-72-6 / П-470-107-8", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Хомут 002.П-350-72-6",kit:60,bars:[["6","A500C",772,1]],where:"6А 30, 6Б 30"},
- {k:"p470-107",dw:[["П-350-72-6 / П-470-107-8", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Хомут 002.П-470-107-8",kit:32,bars:[["8","A500C",1047,1]],where:"6А 16, 6Б 16"},
- {k:"p470-84",sh:"чертежа нет, заготовка 2×470+84 = 1024 мм",dw:[["ПЛ-35.35.14-1", "pl-35-35-14-1"], ["П-470-107-8 (аналог)", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Фиксатор П-470-84-8",kit:36,bars:[["8","A500C",1024,1]],where:"ПЛ 36",est:"Чертежа нет, в спецификации ПЛ: 36 шт по 0,40 кг. Взяли форму хомута П-470-107-8 (чертёж есть): там заготовка 1047 мм = 2 ноги по 470 + спинка 107. Для П-470-84: 2 × 470 + 84 = 1024 мм. Проверка: 1,024 м × 0,395 кг/м = 0,40 кг, совпадает со спецификацией."},
- {k:"p470-100",sh:"чертежа нет, заготовка 2×470+100 = 1040 мм",dw:[["ПЛ-35.35.14-1", "pl-35-35-14-1"], ["П-470-107-8 (аналог)", "p-350-72-6_p-470-107-8"]],g:"sga",n:"Фиксатор П-470-100-8",kit:36,bars:[["8","A500C",1040,1]],where:"ПЛ 36",est:"Чертежа нет, в спецификации ПЛ: 36 шт по 0,41 кг. Взяли форму хомута П-470-107-8 (чертёж есть): заготовка 2 ноги по 470 + спинка. Для П-470-100: 2 × 470 + 100 = 1040 мм. Проверка: 1,040 м × 0,395 кг/м = 0,41 кг, совпадает со спецификацией."},
-
- {k:"p2",dw:[["П-2", "p-2"]],g:"pet",n:"Петля П-2",kit:10,bars:[["12","A240",1170,1]],where:"ПВТ-1 2×2, ПВТ-2 2, ПН.Г-1 2×2"},
- {k:"p12",sh:"по проекту П-11 (Ø8, 0,26 кг) → ставим П-12 (Ø20 A240 L=2700)",dw:[["П-12", "p-12"], ["П-11 (по проекту)", "p-11"], ["ПЛ-35.35.14-1", "pl-35-35-14-1"]],g:"pet",n:"Петля П-12",kit:4,bars:[["20","A240",2700,1]],where:"ПЛ 4",swap:"По спецификации ПЛ-35.35.14-1 стоит петля П-11: 4 шт по 2,37 кг. Но по чертежу П-11 это Ø8 A240 L=670, то есть 0,26 кг, масса не сходится, и для плиты 4,24 т петля Ø8 слабая. По решению цеха ставим П-12: Ø20 A240 L=2700 (2200 по оси, петля 100 над плитой, R40), 6,67 кг/шт."},
-
- {k:"zd1",dw:[["ЗД-1", "zd-1"]],g:"zd",n:"ЗД-1",kit:74,bars:[["10","A500C",480,2]],plate:[8,120,120],where:"6А 17, 6Б 12, ПВТ-1 2×7, ПВТ-2 5, ПН.Г-1 2×9, ПЛ 8"},
- {k:"zd2",dw:[["ЗД-2", "zd-2"]],g:"zd",n:"ЗД-2",kit:20,bars:[["10","A500C",400,2]],plate:[8,120,120],where:"6А 6, 6Б 12, ПВТ-2 2"},
- {k:"zd5",dw:[["ЗД-5", "zd-5"]],g:"zd",n:"ЗД-5",kit:8,bars:[["10","A500C",464,2]],plate:[8,100,140],where:"6А 4, 6Б 4"},
-
- {k:"dn2",prof:"Лист 100×240×8 мм",dw:[["DN-2","dn-2"],["Монтажный план","montazh"]],g:"dn",n:"DN-2",kit:22,metal:1.51,mat:"Лист 8×100×240 C245 (ГОСТ 19903)",where:"6А 3, 6Б 3, монтаж блоков 8, стык 6Б с ПЛ 8",note:"Количество 22 шт: «Комплектация блока» 6А — 3, 6Б — 3; «Монтажный план»: стык 6А с 6Б — 8, стык 6Б с плитой ПЛ — 8."},
- {k:"dn6",prof:"Уголок 100×100×8 мм",dw:[["DN-6","dn-6"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-6",kit:21,metal:1.23,mat:"Уголок 100×8 L=100 C245 (ГОСТ 8509)",where:"6А 14, 6Б 7"},
- {k:"dn13",prof:"Лист 80×200×8 мм",dw:[["DN-13","dn-13"],["БГ-6А","bg-6a"]],g:"dn",n:"DN-13",kit:8,metal:1.0,mat:"Лист 8×80×200 C245 (ГОСТ 19903)",where:"6А 4, 6Б 4",note:"В спецификации блоков 6А и 6Б DN-13 записана как 1,51 кг/шт, но по чертежу DN-13 (8×80×200) масса 1,0 кг. Считаем по чертежу: 1,0 кг."}
-];
-const PROFS=[...new Set(ITEMS.map(metalProf).filter(Boolean))];
-const PROFUSE=Object.fromEntries(PROFS.map(p=>[p,ITEMS.filter(i=>metalProf(i)===p).map(i=>i.n).join(", ")]));
-const PAGES={"005-s3440-2930-5-1": 1, "005-s3440-2930-5-2": 1, "bg-6a": 5, "bg-6b": 4, "g-500-500-8": 1, "k-3440-265-10": 1, "k-3440-70-8": 1, "k-8": 1, "ka-2930-60-52-8-1": 1, "ka-3440-100-86-8": 1, "kg-2930-250-8-a-v": 1, "kp-4": 1, "montazh": 2, "p-11": 1, "p-12": 1, "p-2": 1, "p-350-72-6_p-470-107-8": 1, "pkp-1": 1, "pl-35-35-14-1": 1, "png-1": 2, "pvt-1": 2, "pvt-2": 2, "s2750-3200-1": 1, "s2750-3200-2": 1, "s3440-2930-5-1": 1, "s3440-3440-8": 1, "s800-800-6-1": 1, "sg-1": 1, "sg-2": 1, "spg-3200-2770-5-1": 1, "zd-1": 1, "zd-2": 1, "zd-5": 1, "dn-2": 1, "dn-6": 1, "dn-13": 1};
-if(typeof module!=="undefined")module.exports={KGM,ITEMS,GROUPS,STEEL,PROFS,PROFUSE,metalProf};
 
 const $=s=>document.querySelector(s);
 const fmt=(v,d=1)=>v.toLocaleString("ru-RU",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -287,7 +256,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const BYK=Object.fromEntries(ITEMS.map(i=>[i.k,i]));
 const DIAS=Object.keys(KGM);
 const PN={day:"День",night:"Ночь"};
-function rebarKg(i){return (i.bars||[]).reduce((s,[d,c,L,n])=>s+KGM[d+" "+c]*L/1000*n,0)}
+function short(i){return i.n.split(" (")[0].split(",")[0].replace(/^(Фиксатор|Хомут|Петля) /,"")}
 function metalKg(i){return i.metal||(i.plate?i.plate[0]*i.plate[1]*i.plate[2]*STEEL:0)}
 function comp(i){
   if(i.metal)return i.mat||"";
@@ -297,14 +266,30 @@ function comp(i){
 }
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function ls(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+const int=v=>Math.max(0,Math.floor(Number(v)||0));
+
+// ---------- план: сколько блоков/панелей/плит делает смена (+ доп. изделия к ним)
+function kitPlan(n){return Object.fromEntries(PRODS.map(p=>[p.k,p.kit*n]))}
+function defPlan(part){const s=ls("plan_"+part);if(s){try{const o=JSON.parse(s);if(o&&typeof o==="object")return o}catch(e){}}return kitPlan(part==="day"?2:1)}
+function planOf(src,part){return src&&src.plan?src.plan:defPlan(part)}
+function srcOf(part){return part===st.part?st.draft:(st.day[part]||null)}
+// норма изделия на смену = Σ (шт на 1 блок/панель × сколько их) + добавленные сверху
+function normOf(i,src,part){const pl=planOf(src,part),ex=(src&&src.extra)||{};let n=0;
+  for(const p in i.per)n+=i.per[p]*int(pl[p]);for(const p in ex)n+=int(ex[p]&&ex[p][i.k]);return n}
+function normShift(i){return normOf(i,st.draft,st.part)}
+function normDay(i){return normOf(i,srcOf("day"),"day")+normOf(i,srcOf("night"),"night")}
+function planDay(){const o={};for(const s of ["day","night"]){const pl=planOf(srcOf(s),s);for(const p of PRODS)o[p.k]=(o[p.k]||0)+int(pl[p.k])}return o}
+function extraDay(){const o={};for(const s of ["day","night"]){const ex=(srcOf(s)||{}).extra||{};
+  for(const p in ex)for(const k in ex[p]){const v=int(ex[p][k]);if(v){o[p]=o[p]||{};o[p][k]=(o[p][k]||0)+v}}}return o}
+function planText(pl){return PRODS.filter(p=>int(pl[p.k])).map(p=>p.s+" "+int(pl[p.k])).join(", ")||"ничего"}
+function extraText(ex){const a=[];for(const p in ex)for(const k in ex[p]){const v=int(ex[p][k]);if(v&&BYK[k])a.push(PBY[p].s+": "+short(BYK[k])+" +"+v)}return a.join("; ")}
+function perText(i){return Object.entries(i.per).map(([p,n])=>PBY[p].s+" "+n).join(" · ")}
 
 const st={date:today(),part:ls("part")==="night"?"night":"day",brig:Number(ls("brig"))||1,
-  planD:ls("planD")!=null?Number(ls("planD")):2,planN:ls("planN")!=null?Number(ls("planN")):1,
-  get plan(){return this.planD+this.planN},get planS(){return this.part==="day"?this.planD:this.planN},
-  day:{},draft:{made:{},stock:{}},dirty:false,db:null,user:null,unsub:null,names:{}};
+  day:{},draft:{plan:{},extra:{},made:{},stock:{}},dirty:false,db:null,user:null,unsub:null,names:{},showAll:false};
 
 // ---------- шапка
-$("#date").value=st.date;$("#planD").value=st.planD;$("#planN").value=st.planN;
+$("#date").value=st.date;
 const parts=$("#parts"),brigs=$("#brigs");
 for(const p of ["day","night"]){const b=document.createElement("button");b.type="button";b.textContent=PN[p];b.dataset.p=p;parts.appendChild(b)}
 for(let s=1;s<=4;s++){const b=document.createElement("button");b.type="button";b.textContent=s;b.dataset.b=s;brigs.appendChild(b)}
@@ -313,43 +298,83 @@ let leaveArmed=false;
 function canLeave(){if(!st.dirty||leaveArmed){leaveArmed=false;return true}leaveArmed=true;setStatus('<span class="dirty">Есть несохранённые отметки. Сохраните или нажмите ещё раз, чтобы уйти без сохранения.</span>');return false}
 parts.addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.dataset.p===st.part)return;if(!canLeave())return;st.part=b.dataset.p;ls("part",st.part);loadDraft();render()});
 brigs.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;st.brig=Number(b.dataset.b);ls("brig",String(st.brig));if(st.day[st.part])markDirty();render()});
-for(const f of ["planD","planN"])$("#"+f).addEventListener("input",e=>{st[f]=Math.max(0,Math.min(20,Number(e.target.value)||0));ls(f,String(st[f]));render()});
 $("#date").addEventListener("change",e=>{if(!e.target.value)return;if(!canLeave()){e.target.value=st.date;return}st.date=e.target.value;subscribe();loadDraft();render()});
 function setStatus(h){$("#status").innerHTML=h}
 function markDirty(){st.dirty=true;leaveArmed=false;setStatus('<span class="dirty">'+PN[st.part]+': есть несохранённые отметки</span>');$("#save").disabled=!st.db}
+const later=()=>{clearTimeout(window._rt);window._rt=setTimeout(render,700)};
 
 // ---------- данные
-function loadDraft(){const d=st.day[st.part];if(d&&d.brigade)st.brig=d.brigade;st.draft={made:{...(d?.made||{})},stock:{...(d?.stock||{})}};st.dirty=false}
+function loadDraft(){const d=st.day[st.part];if(d&&d.brigade)st.brig=d.brigade;
+  const ex={};for(const p in (d?.extra||{}))ex[p]={...d.extra[p]};
+  st.draft={plan:{...planOf(d,st.part)},extra:ex,made:{...(d?.made||{})},stock:{...(d?.stock||{})},auto:d?!!d.auto:true};st.dirty=false}
+// «сделали» по умолчанию = норма смены минус взятое со склада; вписанное число (в т.ч. 0) заменяет авто
+function madeEff(src,part){const o={};if(!src)return o;const mm=src.made||{},sk=src.stock||{};
+  for(const i of ITEMS){if(i.k in mm){const v=int(mm[i.k]);if(v)o[i.k]=v}else if(src.auto){const v=normOf(i,src,part)-int(sk[i.k]);if(v>0)o[i.k]=v}}return o}
+function isAuto(k){return st.draft.auto&&!(k in st.draft.made)}
 function dayTotals(){const made={},stock={};
-  for(const s of ["day","night"]){const src=s===st.part?st.draft:st.day[s];if(!src)continue;
-    for(const k in src.made||{})made[k]=(made[k]||0)+(+src.made[k]||0);
+  for(const s of ["day","night"]){const src=srcOf(s);if(!src)continue;
+    const me=madeEff(src,s);for(const k in me)made[k]=(made[k]||0)+me[k];
     for(const k in src.stock||{})stock[k]=(stock[k]||0)+(+src.stock[k]||0)}
   return {made,stock}}
-function setQty(k,f,v){v=Math.max(0,Math.floor(Number(v)||0));if(v)st.draft[f][k]=v;else delete st.draft[f][k]}
+function setQty(k,f,v){if(f==="made"){if(v===""||v==null)delete st.draft.made[k];else st.draft.made[k]=int(v);return}v=int(v);if(v)st.draft[f][k]=v;else delete st.draft[f][k]}
+function setExtra(p,k,v){v=int(v);const ex=st.draft.extra;ex[p]=ex[p]||{};if(v)ex[p][k]=v;else{delete ex[p][k];if(!Object.keys(ex[p]).length)delete ex[p]}}
+
+// ---------- раздел 1: блоки, панели, плиты
+function renderProds(){
+  const dis=st.db?"":"disabled",pd=planDay(),pl=st.draft.plan,ex=st.draft.extra;
+  $("#kitlbl").textContent=PN[st.part]+", план смены:";
+  let t=`<thead><tr><th>Изделие</th><th class="r">В 1 компл.</th><th class="inp">${PN[st.part]}: делаем, шт</th><th class="r">Сутки, шт</th><th>Добавить к нему изделия сверх нормы</th></tr></thead><tbody>`;
+  PRODS.forEach((p,ix)=>{
+    const chips=Object.entries(ex[p.k]||{}).filter(([k])=>BYK[k]).map(([k,v])=>`<span class="chip"><b>${esc(short(BYK[k]))}</b> +<input type="number" min="0" data-xp="${ix}" data-xk="${k}" value="${int(v)||""}" aria-label="${esc(p.s)}: ${esc(BYK[k].n)}, доп. шт" ${dis}> шт<button type="button" class="xdel" data-xp="${ix}" data-xk="${k}" aria-label="Убрать" ${dis}>×</button></span>`).join("");
+    const own=ITEMS.filter(i=>i.per[p.k]),oth=ITEMS.filter(i=>!i.per[p.k]);
+    const opt=a=>a.map(i=>`<option value="${i.k}">${esc(i.n)}${i.per[p.k]?" (по норме "+i.per[p.k]+")":""}</option>`).join("");
+    const sel=`<select class="xadd" data-xp="${ix}" aria-label="${esc(p.s)}: добавить изделие" ${dis}><option value="">+ добавить изделие…</option><optgroup label="Входят в ${esc(p.s)}">${opt(own)}</optgroup><optgroup label="Другие изделия">${opt(oth)}</optgroup></select>`;
+    t+=`<tr class="pr${int(pl[p.k])?" on":""}"><td class="c-pn"><div class="name">${esc(p.s)}</div><div class="comp">${esc(p.n)} · ${esc(p.t)}</div></td>
+      <td class="r num c-kit" data-l="В 1 компл.">${p.kit}</td>
+      <td class="inp" data-l="${PN[st.part]}: делаем"><input type="number" min="0" max="99" id="pl-${ix}" data-pl="${ix}" value="${int(pl[p.k])}" aria-label="${esc(p.s)}: делаем, шт" ${dis}></td>
+      <td class="r num" data-l="Сутки">${pd[p.k]||0}</td>
+      <td class="c-x" data-l="Доп. изделия"><div class="chips">${chips}${sel}</div></td></tr>`});
+  const ae=document.activeElement?.id;$("#prods").innerHTML=t+"</tbody>";
+  if(ae&&document.getElementById(ae))document.getElementById(ae).focus({preventScroll:true});
+}
+const pt=$("#prods");
+pt.addEventListener("input",e=>{const el=e.target;if(el.type!=="number")return;
+  if(el.dataset.pl!=null){st.draft.plan[PRODS[+el.dataset.pl].k]=int(el.value);markDirty();later()}
+  else if(el.dataset.xk){const p=PRODS[+el.dataset.xp].k;const ex=st.draft.extra;ex[p]=ex[p]||{};ex[p][el.dataset.xk]=int(el.value);markDirty();later()}});
+pt.addEventListener("change",e=>{const el=e.target;if(!el.classList.contains("xadd")||!el.value)return;
+  const p=PRODS[+el.dataset.xp].k,k=el.value;setExtra(p,k,int((st.draft.extra[p]||{})[k])+1);markDirty();render();
+  const inp=pt.querySelector(`input[data-xp="${el.dataset.xp}"][data-xk="${k}"]`);if(inp){inp.focus();inp.select()}});
+pt.addEventListener("click",e=>{const b=e.target.closest(".xdel");if(!b)return;setExtra(PRODS[+b.dataset.xp].k,b.dataset.xk,0);markDirty();render()});
+$("#kitfill").addEventListener("click",()=>{if(!st.db)return;st.draft.plan=kitPlan(int($("#kitn").value));markDirty();render()});
+$("#kitclear").addEventListener("click",()=>{if(!st.db)return;st.draft.plan=kitPlan(0);st.draft.extra={};markDirty();render()});
+$("#kitn").value=st.part==="day"?2:1;
 
 // ---------- отрисовка
 function render(){
   paintSeg();
+  // убрать нулевые доп. изделия
+  for(const p in st.draft.extra)for(const k in st.draft.extra[p])if(!int(st.draft.extra[p][k]))setExtra(p,k,0);
+  renderProds();
   const {made,stock}=dayTotals();
   const norm={},fact={},saved={};const nM={},fM={},sM={};
-  for(const i of ITEMS){
+  for(const i of ITEMS){const nd=normDay(i);
     for(const [d,c,L,n] of i.bars||[]){const k=d+" "+c,kg=KGM[k]*L/1000*n;
-      norm[k]=(norm[k]||0)+kg*i.kit*st.plan;fact[k]=(fact[k]||0)+kg*(made[i.k]||0);saved[k]=(saved[k]||0)+kg*(stock[i.k]||0)}
-    const m=metalKg(i),pf=metalProf(i);if(pf){nM[pf]=(nM[pf]||0)+m*i.kit*st.plan;fM[pf]=(fM[pf]||0)+m*(made[i.k]||0);sM[pf]=(sM[pf]||0)+m*(stock[i.k]||0)}}
+      norm[k]=(norm[k]||0)+kg*nd;fact[k]=(fact[k]||0)+kg*(made[i.k]||0);saved[k]=(saved[k]||0)+kg*(stock[i.k]||0)}
+    const m=metalKg(i),pf=metalProf(i);if(pf){nM[pf]=(nM[pf]||0)+m*nd;fM[pf]=(fM[pf]||0)+m*(made[i.k]||0);sM[pf]=(sM[pf]||0)+m*(stock[i.k]||0)}}
   const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);
   const nT=sum(norm),fT=sum(fact),sT=sum(saved);
-  let kits=Infinity,neck=null;
-  for(const i of ITEMS){const k=Math.floor(((made[i.k]||0)+(stock[i.k]||0))/i.kit);if(k<kits){kits=k;neck=i}}
-  let nPcs=0,mPcs=0,mNames=0,lPcs=0,lNames=0,worst=null,worstL=0;
-  for(const i of ITEMS){const nn=i.kit*st.plan,m=made[i.k]||0,l=Math.max(0,nn-m-(stock[i.k]||0));nPcs+=nn;mPcs+=Math.min(m,nn);if(m)mNames++;if(l){lPcs+=l;lNames++;if(l>worstL){worstL=l;worst=i}}}
-  const per=nT/Math.max(1,st.plan);const stPcs=ITEMS.reduce((a,i)=>a+(stock[i.k]||0),0),stNames=ITEMS.filter(i=>stock[i.k]).length;
+  const need=ITEMS.filter(i=>normDay(i)>0);
+  let mPcs=0,mNames=0,lPcs=0,lNames=0,worst=null,worstL=0;
+  for(const i of need){const nn=normDay(i),m=made[i.k]||0,l=Math.max(0,nn-m-(stock[i.k]||0));mPcs+=Math.min(m,nn);if(m)mNames++;if(l){lPcs+=l;lNames++;if(l>worstL){worstL=l;worst=i}}}
+  const stPcs=ITEMS.reduce((a,i)=>a+(stock[i.k]||0),0),stNames=ITEMS.filter(i=>stock[i.k]).length;
+  const exd=extraText(extraDay());
   $("#tiles").innerHTML=`
-   <div class="tile"><small>Закрыто позиций на сутки</small><b class="num">${ITEMS.length-lNames} из ${ITEMS.length}</b><small>сделали ${mPcs} шт изделий (${mNames} наименований)</small></div>
+   <div class="tile"><small>План суток (день + ночь)</small><b class="num pl">${esc(planText(planDay()))}</b><small>${exd?"доп.: "+esc(exd):"без доп. изделий"}</small></div>
+   <div class="tile"><small>Закрыто позиций на сутки</small><b class="num">${need.length-lNames} из ${need.length}</b><small>сделали ${mPcs} шт изделий (${mNames} наименований)</small></div>
    <div class="tile"><small>Не хватает до плана</small><b class="num">${lNames} позиций</b><small>${lPcs?"всего "+lPcs+" шт; больше всего: "+esc(worst.n)+" — "+worstL+" шт":"всё закрыто"}</small></div>
-   <div class="tile"><small>Взяли готовым со склада</small><b class="num">${stPcs} шт</b><small>${stNames} наименований изделий</small></div>
-   <div class="tile"><small>Изделий хватает на</small><b class="num">${kits} из ${st.plan} компл.</b><small>${kits>=st.plan?"план закрыт":(fT+sT)===0?"за сутки пока ничего не отмечено":"меньше всего: "+esc(neck.n)}</small></div>`;
+   <div class="tile"><small>Взяли готовым со склада</small><b class="num">${stPcs} шт</b><small>${stNames} наименований изделий</small></div>`;
   let h=`<thead><tr><th>Ø, класс</th><th class="r">кг/м</th><th class="r">Норма, кг</th><th class="r">Израсходовано, кг</th><th class="r">Осталось сделать, кг</th></tr></thead><tbody>`;
-  for(const k of DIAS)h+=`<tr><td class="name">Ø${k}</td><td class="r num">${fmt(KGM[k],3)}</td><td class="r num">${fmt(norm[k])}</td><td class="r num">${fmt(fact[k]||0)}</td><td class="r num">${fmt(Math.max(0,norm[k]-(fact[k]||0)-(saved[k]||0)))}</td></tr>`;
+  for(const k of DIAS)h+=`<tr><td class="name">Ø${k}</td><td class="r num">${fmt(KGM[k],3)}</td><td class="r num">${fmt(norm[k]||0)}</td><td class="r num">${fmt(fact[k]||0)}</td><td class="r num">${fmt(Math.max(0,(norm[k]||0)-(fact[k]||0)-(saved[k]||0)))}</td></tr>`;
   h+=`<tr class="tot"><td>Итого арматура</td><td></td><td class="r num">${fmt(nT)}</td><td class="r num">${fmt(fT)}</td><td class="r num">${fmt(Math.max(0,nT-fT-sT))}</td></tr>`;
   h+=`<tr class="grp"><td colspan="5">Металлопрокат (закладные и накладные детали)</td></tr>`;
   for(const pf of PROFS)h+=`<tr><td class="name">${pf} <span class="muted">(${esc(PROFUSE[pf])})</span></td><td></td><td class="r num">${fmt(nM[pf]||0)}</td><td class="r num">${fmt(fM[pf]||0)}</td><td class="r num">${fmt(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0)))}</td></tr>`;
@@ -360,32 +385,36 @@ function render(){
     return `<span>${PN[s]}, бригада ${d.brigade||"?"}: сохранил(а) ${esc(st.names[d.by]||"участник")} в ${t}</span>`}).join("");
   renderItems(made,stock);
   $("#save").disabled=!st.db||!st.dirty;$("#reset").disabled=!st.db;
+  $("#kitfill").disabled=$("#kitclear").disabled=!st.db;
   document.querySelectorAll("#allbar button[data-all]").forEach(b=>{b.disabled=!st.db;if(b.dataset.all!=="clear")b.setAttribute("aria-pressed",String(allIn(null,b.dataset.all)))});
-  const cnt=ITEMS.filter(i=>(st.draft.made[i.k]||0)+(st.draft.stock[i.k]||0)>0).length;$("#allcnt").textContent="Отмечено "+cnt+" из "+ITEMS.length+" изделий";
+  const sh=ITEMS.filter(i=>normShift(i)>0),me=madeEff(st.draft,st.part),cnt=sh.filter(i=>(me[i.k]||0)+(st.draft.stock[i.k]||0)>0).length;
+  $("#allcnt").textContent="Отмечено "+cnt+" из "+sh.length+" изделий смены";
 }
+function visible(i,made,stock){return st.showAll||normDay(i)>0||(made[i.k]||0)+(stock[i.k]||0)>0}
 function renderItems(made,stock){
-  const dis=st.db?"":"disabled";
-  let t=`<thead><tr><th>Изделие</th><th>Чертёж</th><th>Состав на 1 шт</th><th class="r">На компл.</th><th class="r">Норма смены</th><th class="r">Норма суток</th><th class="r">Сутки: сделали / склад</th><th class="inp">${PN[st.part]}: отметка</th></tr></thead><tbody>`;
+  const dis=st.db?"":"disabled";let hidden=0;
+  let t=`<thead><tr><th>Изделие</th><th>Чертёж</th><th>Состав на 1 шт</th><th class="r">Норма смены</th><th class="r">Норма суток</th><th class="r">Сутки: сделали / склад</th><th class="inp">${PN[st.part]}: отметка</th></tr></thead><tbody>`;
+  const sx=st.draft.extra,me=madeEff(st.draft,st.part);
   for(const g of GROUPS){
-    t+=`<tr class="grp"><td colspan="8"><span class="gname">${esc(g.name)}</span><span class="gwhere">${esc(g.where)}</span><span class="gbtn"><button type="button" class="mini" data-bulk="made" data-g="${g.id}" aria-pressed="${allIn(g.id,"made")}" ${dis}>Раздел: сделали</button><button type="button" class="mini" data-bulk="stock" data-g="${g.id}" aria-pressed="${allIn(g.id,"stock")}" ${dis}>Раздел: со склада</button><button type="button" class="mini" data-bulk="clear" data-g="${g.id}" ${dis}>Снять</button></span></td></tr>`;
-    for(const i of ITEMS.filter(x=>x.g===g.id)){
-      const ns=i.kit*st.planS,nd=i.kit*st.plan,m=made[i.k]||0,s=stock[i.k]||0,p=Math.min(100,(m+s)/Math.max(1,nd)*100);
-      const dm=st.draft.made[i.k]||0,ds=st.draft.stock[i.k]||0;
-      const tags=(i.swap?'<span class="tag swap">замена</span>':"")+(i.est?'<span class="tag est">прикидка</span>':"")+((m+s)>=nd?'<span class="tag ok">норма суток есть</span>':"");
+    const its=ITEMS.filter(x=>x.g===g.id&&(visible(x,made,stock)||(hidden++,false)));if(!its.length)continue;
+    t+=`<tr class="grp"><td colspan="7"><span class="gname">${esc(g.name)}</span><span class="gwhere">${esc(g.where)}</span><span class="gbtn"><button type="button" class="mini" data-bulk="made" data-g="${g.id}" aria-pressed="${allIn(g.id,"made")}" ${dis}>Раздел: сделали</button><button type="button" class="mini" data-bulk="stock" data-g="${g.id}" aria-pressed="${allIn(g.id,"stock")}" ${dis}>Раздел: со склада</button><button type="button" class="mini" data-bulk="clear" data-g="${g.id}" ${dis}>Снять</button></span></td></tr>`;
+    for(const i of its){
+      const ns=normShift(i),nd=normDay(i),m=made[i.k]||0,s=stock[i.k]||0,p=Math.min(100,(m+s)/Math.max(1,nd)*100);
+      const dm=me[i.k]||0,ds=st.draft.stock[i.k]||0,au=isAuto(i.k);
+      const xs=Object.keys(sx).filter(p=>int(sx[p][i.k])).map(p=>PBY[p].s+" +"+int(sx[p][i.k])).join(", ");
+      const tags=(i.swap?'<span class="tag swap">замена</span>':"")+(xs?'<span class="tag xtra">доп.: '+esc(xs)+'</span>':"")+(nd&&(m+s)>=nd?'<span class="tag ok">норма суток есть</span>':"");
       const ex=(i.swap?`<details class="expl swap"><summary><b>Замена:</b> ${esc(i.sh)}</summary>${esc(i.swap)}</details>`:"")
-        +(i.est?`<details class="expl est"><summary><b>Прикидка:</b> ${esc(i.sh)}</summary>${esc(i.est)}</details>`:"")
         +(i.note?`<div class="expl plain">${esc(i.note)}</div>`:"");
-      const dw=(i.dw||[]).map(([l,f])=>`<button type="button" class="dwb" data-f="${f}" data-l="${esc(l)}">${esc(l)}</button>`).join("");
-      t+=`<tr class="it${dm?" mm":""}${ds?" ms":""}">
-        <td class="c-name"><div class="name">${esc(i.n)}</div><div class="comp">${esc(i.where)}</div>${tags}${ex}</td>
+      const dw=(i.dw||[]).map(([l,f])=>`<button type="button" class="dwb" data-f="${f}" data-l="${esc(l)}">${esc(l)}</button>`).join("")||'<span class="none">чертёж 4.0 не загружен</span>';
+      t+=`<tr class="it${dm?" mm":""}${ds?" ms":""}${nd?"":" zero"}">
+        <td class="c-name"><div class="name">${esc(i.n)}</div><div class="comp">на 1 шт: ${esc(perText(i))}</div>${tags}${ex}</td>
         <td class="c-dw" data-l="Чертёж"><div class="dw">${dw}</div></td>
         <td class="c-comp comp" data-l="Состав">${esc(comp(i))}</td>
-        <td class="r num" data-l="На компл.">${i.kit}</td>
         <td class="r num" data-l="Норма смены"><b>${ns}</b></td>
         <td class="r num" data-l="Норма суток">${nd}</td>
         <td class="r num" data-l="Сутки">${m} / ${s}<div class="pg" aria-hidden="true"><i style="width:${p}%"></i></div></td>
         <td class="inp c-mark" data-l="${PN[st.part]}">
-          <label class="mk"><input type="checkbox" id="cm-${i.k}" data-k="${i.k}" data-f="made" ${dm?"checked":""} ${dis}><span>Сделали</span><input type="number" min="0" id="qm-${i.k}" data-k="${i.k}" data-f="made" value="${dm||""}" placeholder="—" aria-label="${esc(i.n)}: сделали, шт" ${dis}></label>
+          <label class="mk"><input type="checkbox" id="cm-${i.k}" data-k="${i.k}" data-f="made" ${dm?"checked":""} ${dis}><span>${au&&dm?"Сделали (авто)":"Сделали"}</span><input type="number" min="0" id="qm-${i.k}" data-k="${i.k}" data-f="made" value="${au?"":(i.k in st.draft.made?int(st.draft.made[i.k]):"")}" placeholder="${au?dm:"—"}" placeholder="—" aria-label="${esc(i.n)}: сделали, шт" ${dis}></label>
           <label class="mk"><input type="checkbox" id="cs-${i.k}" data-k="${i.k}" data-f="stock" ${ds?"checked":""} ${dis}><span>Склад</span><input type="number" min="0" id="qs-${i.k}" data-k="${i.k}" data-f="stock" value="${ds||""}" placeholder="—" aria-label="${esc(i.n)}: со склада, шт" ${dis}></label>
         </td></tr>`;
     }
@@ -394,25 +423,29 @@ function renderItems(made,stock){
   tb.innerHTML=t+"</tbody>";
   open.forEach(k=>{const r=document.getElementById("cm-"+k)?.closest("tr");r?.querySelectorAll("details").forEach(d=>d.open=true)});
   if(ae&&document.getElementById(ae))document.getElementById(ae).focus({preventScroll:true});
+  const sa=$("#showall");sa.hidden=!st.showAll&&!hidden;sa.textContent=st.showAll?"Скрыть ненужные сегодня":"Показать все изделия (скрыто "+hidden+")";
 }
+$("#showall").addEventListener("click",()=>{st.showAll=!st.showAll;render()});
 const tb=$("#items");
 tb.addEventListener("change",e=>{const el=e.target;if(el.type!=="checkbox"||!el.dataset.k)return;
-  const i=BYK[el.dataset.k],ns=i.kit*st.planS,other=el.dataset.f==="made"?"stock":"made";
-  setQty(i.k,el.dataset.f,el.checked?((ns-(st.draft[other][i.k]||0))>0?ns-(st.draft[other][i.k]||0):ns):0);markDirty();render()});
+  const i=BYK[el.dataset.k],ns=normShift(i)||1,me=madeEff(st.draft,st.part);
+  if(el.dataset.f==="made"){if(!el.checked)setQty(i.k,"made",0);else if(st.draft.auto&&normShift(i))delete st.draft.made[i.k];else setQty(i.k,"made",Math.max(1,ns-int(st.draft.stock[i.k])))}
+  else{const mx=i.k in st.draft.made?int(st.draft.made[i.k]):0;setQty(i.k,"stock",el.checked?(ns-mx>0?ns-mx:ns):0)}
+  markDirty();render()});
 tb.addEventListener("input",e=>{const el=e.target;if(el.type!=="number"||!el.dataset.k)return;
-  setQty(el.dataset.k,el.dataset.f,el.value);const cb=document.getElementById((el.dataset.f==="made"?"cm-":"cs-")+el.dataset.k);if(cb)cb.checked=!!st.draft[el.dataset.f][el.dataset.k];
-  markDirty();clearTimeout(window._rt);window._rt=setTimeout(render,700)});
+  setQty(el.dataset.k,el.dataset.f,el.value);
+  markDirty();later()});
 tb.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   if(b.dataset.f)return openViewer(b.dataset.f,b.dataset.l);
   if(b.dataset.bulk)bulk(b.dataset.bulk,b.dataset.g);
 });
-function bulk(kind,g){{for(const i of ITEMS.filter(x=>!g||x.g===g)){const ns=i.kit*st.planS;
-      if(kind==="clear"){setQty(i.k,"made",0);setQty(i.k,"stock",0)}
-      else{const o=kind==="made"?"stock":"made";setQty(i.k,o,0);setQty(i.k,kind,ns)}}
-    markDirty();render()}
-}
-function allIn(g,f){return ITEMS.filter(x=>!g||x.g===g).every(i=>(st.draft[f][i.k]||0)>0)}
+function bulk(kind,g){for(const i of ITEMS.filter(x=>!g||x.g===g)){const ns=normShift(i);
+    if(kind==="clear"){setQty(i.k,"made",0);setQty(i.k,"stock",0)}
+    else if(kind==="made"){setQty(i.k,"stock",0);if(st.draft.auto)delete st.draft.made[i.k];else if(ns)setQty(i.k,"made",ns)}
+    else if(ns){setQty(i.k,"made",0);setQty(i.k,"stock",ns)}}
+  markDirty();render()}
+function allIn(g,f){const a=ITEMS.filter(x=>(!g||x.g===g)&&normShift(x)>0);const src=f==="made"?madeEff(st.draft,st.part):st.draft.stock;return a.length>0&&a.every(i=>(src[i.k]||0)>0)}
 document.querySelector("#allbar").addEventListener("click",e=>{const b=e.target.closest("button[data-all]");if(b&&st.db)bulk(b.dataset.all,null)});
 // сброс: стереть отметки дня и ночи за выбранную дату (второе нажатие подтверждает)
 let resetT=null;
@@ -422,17 +455,17 @@ $("#reset").addEventListener("click",async()=>{const b=$("#reset");if(!st.db)ret
   clearTimeout(resetT);b.classList.remove("armed");b.textContent="Сбросить всё";b.disabled=true;
   try{for(const p of ["day","night"]){const d=st.db.collection("shifts").doc(st.date+"_"+p);
       if(typeof d.delete==="function")await d.delete();else await d.set({date:"",part:p,made:{},stock:{},at:new Date().toISOString()})}
-    st.day={};st.draft={made:{},stock:{}};st.dirty=false;leaveArmed=false;render();setStatus("Сброшено: день и ночь за "+ddmm(st.date)+" пустые")}
+    st.day={};loadDraft();leaveArmed=false;render();setStatus("Сброшено: день и ночь за "+ddmm(st.date)+" пустые")}
   catch(e){setStatus('<span class="dirty">Не сбросилось: '+esc(e.message||e.code||"ошибка")+'</span>')}
   finally{b.disabled=!st.db}});
 $("#save").addEventListener("click",async()=>{
-  if(!st.db)return;$("#save").disabled=true;setStatus("Сохраняю…");
+  if(!st.db)return;$("#save").disabled=true;setStatus("Сохраняю…");render();
   try{const by=st.user?await st.user.id():null;
-    await st.db.collection("shifts").doc(st.date+"_"+st.part).set({date:st.date,part:st.part,brigade:st.brig,made:st.draft.made,stock:st.draft.stock,by:by||"",at:new Date().toISOString()});
+    await st.db.collection("shifts").doc(st.date+"_"+st.part).set({date:st.date,part:st.part,brigade:st.brig,plan:st.draft.plan,extra:st.draft.extra,made:st.draft.made,stock:st.draft.stock,auto:!!st.draft.auto,by:by||"",at:new Date().toISOString(),ver:5});
+    ls("plan_"+st.part,JSON.stringify(st.draft.plan));
     st.dirty=false;setStatus(PN[st.part]+" сохранена, бригада "+st.brig)}
   catch(e){setStatus('<span class="dirty">Не сохранилось: '+esc(e.message||e.code||"ошибка")+'. </span>');$("#save").disabled=false}
 });
-
 // ---------- просмотр чертежей
 const vw=$("#viewer");
 function openViewer(f,l){
@@ -446,8 +479,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!vw.hidden)closeVie
 document.addEventListener("click",e=>{const b=e.target.closest(".fileb");if(b)openViewer(b.dataset.f,b.dataset.l)});
 
 function notes(){
-  $("#notes").innerHTML=ITEMS.filter(i=>i.est||i.swap).map(i=>`<li><div class="name">${esc(i.n)} <span class="tag ${i.swap?"swap":"est"}">${i.swap?"замена":"прикидка"}</span></div><div class="expl ${i.swap?"swap":"est"}"><b>${esc(i.sh)}.</b> ${esc(i.swap||i.est)}</div></li>`).join("");
-  const F=[["БГ-35.35.30-6А","bg-6a"],["БГ-35.35.30-6Б","bg-6b"],["ПН.Г-1","png-1"],["ПВТ-1","pvt-1"],["ПВТ-2","pvt-2"],["ПЛ-35.35.14-1","pl-35-35-14-1"],["Монтажный план блоков","montazh"]];
+  $("#notes").innerHTML=ITEMS.filter(i=>i.swap).map(i=>`<li><div class="name">${esc(i.n)} <span class="tag swap">замена</span></div><div class="expl swap"><b>${esc(i.sh)}.</b> ${esc(i.swap)}</div></li>`).join("")
+    +ASSUME.slice(1).map(([a,b])=>`<li><div class="name">${esc(a)} <span class="tag est">допущение</span></div><div class="expl est">${esc(b)}</div></li>`).join("");
+  const F=[["БГ-34.35.30-1А","bg-1a"],["БГ-34.35.30-1Б","bg-1b"],["ПН.Г-1","png-1"],["ПВТ-1","pvt-1"],["ПВТ-3","pvt-3"],["ПВТ-2","pvt-2"],["ПЛ-34.35.14-1","pl-34-35-14-1"],["Монтажный план блоков","montazh"]];
   const seen=new Set(F.map(x=>x[1])),rest=[];ITEMS.forEach(i=>(i.dw||[]).forEach(([l,f])=>{if(!seen.has(f)){seen.add(f);rest.push([l,f])}}));
   $("#files").innerHTML=F.concat(rest).map(([l,f])=>`<button type="button" class="fileb" data-f="${f}" data-l="${esc(l)}">${esc(l)}</button>`).join("");
 }
@@ -471,40 +505,47 @@ async function report(kind){
   const btn=kind==="shift"?$("#pdfS"):$("#pdfD");btn.disabled=true;const old=btn.textContent;btn.textContent="Готовлю PDF…";
   try{
     const dl=await window.claude?.use?.("downloads");
-    
     const pm=await pdfLib();
-    let made,stock,plan,title;
-    if(kind==="shift"){made=st.draft.made;stock=st.draft.stock;plan=st.planS;title="Отчёт смены: "+PN[st.part].toLowerCase()+", бригада "+st.brig}
-    else{const t=dayTotals();made=t.made;stock=t.stock;plan=st.plan;title="Отчёт за сутки (день + ночь)"}
+    let made,stock,title,plan,extra,nf;
+    if(kind==="shift"){made=madeEff(st.draft,st.part);stock=st.draft.stock;plan=st.draft.plan;extra=st.draft.extra;nf=normShift;title="Отчёт смены: "+PN[st.part].toLowerCase()+", бригада "+st.brig}
+    else{const t=dayTotals();made=t.made;stock=t.stock;plan=planDay();extra=extraDay();nf=normDay;title="Отчёт за сутки (день + ночь)"}
     let who="";try{const me=st.user?await st.user.me():null;who=me&&me.name||""}catch(e){}
     const n2=v=>fmt(v,1);
-    const norm={},fact={},sv={};let nT=0,fT=0,sT=0,kits=Infinity;const nM={},fM={},sM={};
+    const norm={},fact={},sv={};let nT=0,fT=0,sT=0;const nM={},fM={},sM={};
+    const pr=[[{text:"Изделие",style:"th"},{text:"Сделать, шт",style:"th"},{text:"Добавлено сверх нормы",style:"th"}]];
+    for(const p of PRODS){const q=int(plan[p.k]),x=Object.entries(extra[p.k]||{}).filter(([k,v])=>int(v)&&BYK[k]).map(([k,v])=>short(BYK[k])+" +"+int(v)).join(", ");
+      if(q||x)pr.push([{text:p.s+" ("+p.n+")",style:"td"},{text:String(q),style:"tn"},{text:x||"—",style:"td"}])}
+    if(pr.length===1)pr.push([{text:"план не указан",colSpan:3,style:"td"},"",""]);
     const rows=[[{text:"Изделие",style:"th"},{text:"Норма, шт",style:"th"},{text:"Сделали, шт",style:"th"},{text:"Со склада, шт",style:"th"},{text:"Не хватает, шт",style:"th"}]];
-    for(const g of GROUPS){rows.push([{text:g.name,colSpan:5,style:"grp"},"","","",""]);
-      for(const i of ITEMS.filter(x=>x.g===g.id)){const nn=i.kit*plan,m=made[i.k]||0,s=stock[i.k]||0;
-        kits=Math.min(kits,Math.floor((m+s)/i.kit));
+    let closed=0,open=0;
+    for(const g of GROUPS){let head=false;
+      for(const i of ITEMS.filter(x=>x.g===g.id)){const nn=nf(i),m=made[i.k]||0,s=stock[i.k]||0;
+        if(!nn&&!m&&!s)continue;
+        if(!head){rows.push([{text:g.name,colSpan:5,style:"grp"},"","","",""]);head=true}
         for(const [d,c,Lm,q] of i.bars||[]){const k=d+" "+c,w=KGM[k]*Lm/1000*q;norm[k]=(norm[k]||0)+w*nn;fact[k]=(fact[k]||0)+w*m;sv[k]=(sv[k]||0)+w*s}
         const pf=metalProf(i);if(pf){const w=metalKg(i);nM[pf]=(nM[pf]||0)+w*nn;fM[pf]=(fM[pf]||0)+w*m;sM[pf]=(sM[pf]||0)+w*s}
-        const lack=Math.max(0,nn-m-s);
+        const lack=Math.max(0,nn-m-s);if(nn){if(lack)open++;else closed++}
         rows.push([{text:i.n+(i.swap?"  (замена)":""),style:"td"},{text:String(nn),style:"tn"},{text:m?String(m):"—",style:"tn"},{text:s?String(s):"—",style:"tn"},{text:lack?String(lack):"—",style:lack?"tbad":"tn"}])}}
     const dr=[[{text:"Ø, класс",style:"th"},{text:"Норма, кг",style:"th"},{text:"Израсходовано, кг",style:"th"},{text:"Осталось сделать, кг",style:"th"}]];
-    for(const k of DIAS){nT+=norm[k]||0;fT+=fact[k]||0;sT+=sv[k]||0;dr.push([{text:"Ø"+k,style:"td"},{text:n2(norm[k]||0),style:"tn"},{text:n2(fact[k]||0),style:"tn"},{text:n2(Math.max(0,(norm[k]||0)-(fact[k]||0)-(sv[k]||0))),style:"tn"}])}
+    for(const k of DIAS){nT+=norm[k]||0;fT+=fact[k]||0;sT+=sv[k]||0;if(!norm[k]&&!fact[k])continue;dr.push([{text:"Ø"+k,style:"td"},{text:n2(norm[k]||0),style:"tn"},{text:n2(fact[k]||0),style:"tn"},{text:n2(Math.max(0,(norm[k]||0)-(fact[k]||0)-(sv[k]||0))),style:"tn"}])}
     dr.push([{text:"Итого арматура",style:"tdb"},{text:n2(nT),style:"tnb"},{text:n2(fT),style:"tnb"},{text:n2(Math.max(0,nT-fT-sT)),style:"tnb"}]);
     dr.push([{text:"Металлопрокат (закладные и накладные детали)",colSpan:4,style:"grp"},"","",""]);
-    for(const pf of PROFS)dr.push([{text:pf+" ("+PROFUSE[pf]+")",style:"td"},{text:n2(nM[pf]||0),style:"tn"},{text:n2(fM[pf]||0),style:"tn"},{text:n2(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0))),style:"tn"}]);
-    const swaps=ITEMS.filter(i=>i.swap).map(i=>({text:i.n+": "+i.sh,style:"small"}));
+    for(const pf of PROFS){if(!nM[pf]&&!fM[pf])continue;dr.push([{text:pf+" ("+PROFUSE[pf]+")",style:"td"},{text:n2(nM[pf]||0),style:"tn"},{text:n2(fM[pf]||0),style:"tn"},{text:n2(Math.max(0,(nM[pf]||0)-(fM[pf]||0)-(sM[pf]||0))),style:"tn"}])}
+    const swaps=ASSUME.map(([a,b])=>({text:a+": "+b,style:"small"}));
     const doc={pageSize:"A4",pageMargins:[36,40,36,40],defaultStyle:{font:"Roboto",fontSize:9},
       content:[
-        {text:"Арматурный цех · Глушитель ПР-6-2026 (КЖИ от 26.10.2026)",style:"kick"},
+        {text:"Арматурный цех · Глушитель ПР-6-2026 (Глушитель 4.0, КЖИ ред. 3 от 03.11.2026)",style:"kick"},
         {text:title,style:"h1"},
-        {columns:[{text:"Дата: "+ddmm(st.date)+"\nПлан: "+plan+" компл."+(kind==="day"?" (день "+st.planD+" + ночь "+st.planN+")":"")},{text:"Сформировал: "+(who||"—")+"\nВремя: "+new Date().toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}),alignment:"right"}],margin:[0,4,0,10]},
-        {table:{widths:["*","*","*","*"],body:[[{text:"Закрыто позиций",style:"th"},{text:"Не хватает до плана",style:"th"},{text:"Взяли готовым со склада",style:"th"},{text:"Изделий хватает на",style:"th"}],[{text:ITEMS.filter(i=>(made[i.k]||0)+(stock[i.k]||0)>=i.kit*plan).length+" из "+ITEMS.length,style:"big"},{text:ITEMS.filter(i=>(made[i.k]||0)+(stock[i.k]||0)<i.kit*plan).length+" позиций",style:"big"},{text:ITEMS.reduce((a,i)=>a+(stock[i.k]||0),0)+" шт",style:"big"},{text:kits+" из "+plan+" компл.",style:"big"}]]},layout:"lightHorizontalLines",margin:[0,0,0,12]},
+        {columns:[{text:"Дата: "+ddmm(st.date)+"\nПлан: "+planText(plan)},{text:"Сформировал: "+(who||"—")+"\nВремя: "+new Date().toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}),alignment:"right"}],margin:[0,4,0,10]},
+        {text:"Блоки, панели, плиты",style:"h2"},
+        {table:{headerRows:1,widths:["*",70,"*"],body:pr},layout:{hLineColor:"#9aa3ad",vLineColor:"#9aa3ad"},margin:[0,0,0,12]},
+        {table:{widths:["*","*","*"],body:[[{text:"Закрыто позиций",style:"th"},{text:"Не хватает до плана",style:"th"},{text:"Взяли готовым со склада",style:"th"}],[{text:closed+" из "+(closed+open),style:"big"},{text:open+" позиций",style:"big"},{text:ITEMS.reduce((a,i)=>a+(stock[i.k]||0),0)+" шт",style:"big"}]]},layout:"lightHorizontalLines",margin:[0,0,0,12]},
         {text:"Расход арматуры и металлопроката",style:"h2"},
         {table:{headerRows:1,widths:["*",80,100,90],body:dr},layout:{hLineColor:"#9aa3ad",vLineColor:"#9aa3ad"},margin:[0,0,0,12]},
         {text:"Изделия",style:"h2"},
         {table:{headerRows:1,widths:["*",55,60,65,65],body:rows},layout:{hLineColor:"#9aa3ad",vLineColor:"#9aa3ad"}},
-        {text:"Замены относительно проекта",style:"h2",margin:[0,12,0,4]},...swaps,
-        {text:"Расход считается только по изготовленному. «Со склада» — изделия взяты готовыми, арматура не расходовалась.",style:"small",margin:[0,8,0,0]}
+        {text:"Замены и допущения",style:"h2",margin:[0,12,0,4]},...swaps,
+        {text:"Норма = сколько блоков, панелей, плит × изделий на 1 шт по КЖИ 4.0 + добавленные сверх нормы. Расход считается только по изготовленному. «Со склада» — изделия взяты готовыми, арматура не расходовалась.",style:"small",margin:[0,8,0,0]}
       ],
       styles:{kick:{fontSize:8,color:"#566170"},h1:{fontSize:15,bold:true,margin:[0,2,0,0]},h2:{fontSize:11,bold:true,margin:[0,0,0,4]},
         th:{bold:true,fontSize:8.5,fillColor:"#e1e5ea"},grp:{bold:true,fillColor:"#eef1f4"},td:{},tdb:{bold:true},tn:{alignment:"right"},tnb:{alignment:"right",bold:true},tbad:{alignment:"right",color:"#a3321f",bold:true},big:{fontSize:13,bold:true},small:{fontSize:8,color:"#444"}},
